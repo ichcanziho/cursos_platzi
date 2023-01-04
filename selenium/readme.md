@@ -39,3 +39,16 @@ Selenium WebDriver es la herramienta que utilizaremos en el curso.
 * Selector de CSS
 * Texto del link
 * Texto parcial del link
+
+# C3: Preparar assertions y test suit
+
+### Assertions
+
+Métodos que permiten validar un valor esperado en la ejecución del test. Si el resultado es verdadero el test continúa,
+en caso contrario "falla" y termina. 
+
+### Test Suits
+
+Colección de test unificados en una sola prueba, permitiendo tener resultados grupales e individuales.
+
+![test_suit](./imgs/test_suit.png "test_suit")  
