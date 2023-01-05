@@ -26,7 +26,7 @@ class CompareProducts(unittest.TestCase):
     def test_create_new_customer(self):  # Creacion de nuevo usuario
 
         # Encontrar el elemento por el texto del enlace
-        self.driver.find_element(By.LINK_TEXT, 'ACCOUNT')
+        self.driver.find_element(By.LINK_TEXT, 'ACCOUNT').click()
 
         # Hacer referencia a la cuenta
         my_account = WebDriverWait(self.driver, 3).until(EC.visibility_of_element_located((By.LINK_TEXT, 'My Account')))
