@@ -106,3 +106,9 @@ Esta clase nos permite interactuar específicamente con elementos de los sitios 
 |submit()	|Envía un formulario o confirmación en un text area	|search_field.submit()|
 |value_of_css_property(property_name)	|Obtiene el valor de una propiedad CSS del elemento	|header.value_of_css_property(‘background-color’)|
 
+# Demoras
+
+### Implícita
+Busca uno o varios elementos en el DOM si no se encuentran disponibles por la cantidad de tiempo asignado
+### Explícita
+Utiliza condiciones de espera determinadas y continúa hasta que se cumplan
