@@ -8,7 +8,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 
-class DynamicElements(unittest.TestCase):
+class DynamicControls(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:

@@ -6,7 +6,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 
 
-class DynamicElements(unittest.TestCase):
+class Typos(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -15,7 +15,7 @@ class DynamicElements(unittest.TestCase):
         driver.get("http://the-internet.herokuapp.com/")
         driver.find_element(By.LINK_TEXT, "Typos").click()
 
-    def test_dynamic_controls(self):
+    def test_typos(self):
         driver = self.driver
         typo_text = driver.find_element(By.XPATH, '//*[@id="content"]/div/p[2]').text
         tries = 1

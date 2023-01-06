@@ -14,9 +14,12 @@ Selenium WebDriver es la herramienta que utilizaremos en el curso.
 
 ## Preparando SELENIUM
 
-* pip install selenium
-* pip install pyunitreport
-* pip install html-testRunner
+```bash
+pip install selenium
+pip install pyunitreport
+pip install html-testRunner
+pip install ddt
+```
 
 
 ## Unittest (PyTest)
@@ -153,3 +156,33 @@ element = wait.until(EC.element_to_be_clickable((By.ID, 'someid')))
 ```
 
 https://selenium-python.readthedocs.io/waits.html
+
+-----------------
+```bash
+pip install ddt
+```
+
+
+### TTD Test Driven Development
+
+Permite desarrollar código con base en pruebas para que pueda cumplirlas
+
+### DDT Data Driven Testing
+
+Permite desarrollar pruebas con base a código ya existente para validar en qué escenarios puede fallar o cumplir.
+
+## Page Object Model
+
+**Page Object Model** es un patrón de diseño utilizado en Testing, el cual, tiene beneficios para la elaboración de Tests.
+
+### Funcionamiento:
+-En vez de tener nuestros Test en un solo archivo, los tendremos abstraídos en una nueva capa llamada **Pages**, donde tendremos los Tests en archivos independientes, haciendo referencia al sitio donde se aplica (Home, Login, etc).
+
+A los archivos independientes se les agregará un nuevo archivo que es el **Page Object**, el cual se encargará de tomar los Tests que se están realizando y validarlas contra los **Tests Cases**.
+
+![pom](./imgs/pom.png "pom")  
+
+### Explicación de beneficios:
+
+POM es hacer un objeto que represente la página y hacer los test contra el objeto; así si la página se modifica sólo tendrás que modificar el objeto y todos los test quedarían igual.
+Si no se usa este método y haces un montón de tests para el sitio es muy probable que los test queden de tal manera que funcionen sólo para la página de una manera y si la página cambia tendrías que estar actualizando todos los test de uno por uno y eso va a consumir mucho más tiempo que a si utilizaras correctamente el modelo de POM
