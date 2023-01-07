@@ -42,7 +42,7 @@ class LanguageOptions(unittest.TestCase):
         select_language.select_by_visible_text('German')
 
         # verificamos que el sitio cambio a Alemán
-        # preguntamos a selenium si la url del sitio contiene esas palabras
+        # preguntamos a selenium_curso si la url del sitio contiene esas palabras
         self.assertTrue('store=german' in self.driver.current_url)
 
         select_language = Select(self.driver.find_element(By.ID, 'select-language'))
