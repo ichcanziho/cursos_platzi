@@ -32,6 +32,7 @@ class CompareProducts(unittest.TestCase):
         sleep(3)
         driver.refresh()
         sleep(3)
+        driver.cl
 
     @classmethod
     def tearDownClass(cls) -> None:

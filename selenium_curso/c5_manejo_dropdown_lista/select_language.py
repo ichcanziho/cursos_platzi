@@ -25,6 +25,7 @@ class LanguageOptions(unittest.TestCase):
         active_options = []
         # para acceder a las opciones del dropdown SELECT fue un import especial de WebDriver -> ver imports
         select_language = Select(self.driver.find_element(By.ID, 'select-language'))
+        select_language.select_by
         # para comprobar que si esté la cantidad de opciones correcta
         # 'options' permite ingresar directamente a las opciones del dropdown
         self.assertEqual(3, len(select_language.options))
