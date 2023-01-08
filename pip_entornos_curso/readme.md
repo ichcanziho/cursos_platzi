@@ -167,3 +167,41 @@ El readme debe contener todo lo necesario para indicar como debe ser ejectuado e
 # Clase 6: ¿Qué es pip?
 
 -----------
+PIP es el gestor de paquetes de python, es posible buscar librerías en la pagina [pypi](https://pypi.org/)
+
+En esta clase veremos como hacer una gráfica con [Matplotlib](https://pypi.org/project/matplotlib/)
+
+```bash
+mkdir c7_charts
+cd c7_charts
+touch main.py
+touch charts.py
+```
+
+_los códigos de main.py y charts.py han sido copiados y ya estan puestos_
+
+Ahora instalemos la libreria de plotting preferida
+
+```bash
+pip3 install matplotlib
+```
+
+Si queremos observar todas las librerias instaladas entonces podemos usar:
+
+```bash
+pip3 freeze
+```
+
+Ejecutemos nuestro código de python
+
+```bash
+cd c7_charts
+python3 main.py
+```
+
+# Clase 7: Gŕaficas en Python con Pip
+
+```bash
+mkdir c8_charts_advance
+cd c8_charts_advance
+```
