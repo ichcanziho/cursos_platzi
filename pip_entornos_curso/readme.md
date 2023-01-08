@@ -1,5 +1,8 @@
 # Clase 1: Python en tu propio entorno de desarrollo local
 
+------------------------------------
+
+
 Indica nuestra ruta actual
 ```bash
 pwd
@@ -33,6 +36,8 @@ touch main.py
 
 # Clase 2: Instalación de Windows (WSL) y Linux
 
+------------------------------------
+
 ### instalación de python
 ```bash
 sudo apt update
@@ -65,6 +70,8 @@ sudo apt install -y build-essential libssl-dev libffi-dev python3-dev
 
 # Clase 4: Python con VSCode
 
+------------------------------------
+
 Instalar VSCode
 ```bash
 sudo snap install --classic code
@@ -80,6 +87,8 @@ Instalar la extensión de python de Microsoft
 ![estructura](./imgs/im1.png "Extensión de python")  
 
 # Clase 5: Python con Git y GitHub
+
+------------------------------------
 
 Paso 1: Creamos un repositorio en GitHub con un nombre de proyecto
 ![estructura](./imgs/im2.png "Creación de repositorio GitHub")  
@@ -107,7 +116,7 @@ git remote -v
 Agregamos todos los cambios a Git
 
 ```bash
-git add *
+git add .
 ```
 
 Hacemos un commit de los cambios
@@ -133,3 +142,28 @@ Ahora creamos un archivo Readme
 ```bash
 touch README2.MD
 ```
+
+# Clase 6: Flujo de Trabajo en Python
+
+------------------------------------
+
+Vamos a copiar el juego de piedra papel o tijera
+
+```bash
+mkdir c6_game
+cd c6_game
+touch main.py
+```
+
+Copiamos el código en main.py y ahora lo ejecutamos
+
+```bash
+cd c6_game
+python3 main.py
+```
+
+El readme debe contener todo lo necesario para indicar como debe ser ejectuado el código. Incluyento instalación de dependencias por ejemplo.
+
+# Clase 6: ¿Qué es pip?
+
+-----------
