@@ -356,6 +356,9 @@ pip install pandas
 
 # Clase 14: Web Server con FastAPI
 
+----------------
+
+
 ### FastApi 
 Es un framework de Python para crear aplicaciones web rápidas y seguras. Utilice la mejor OpenAPI para definir la interfaz de la aplicación y proporcione un conjunto de herramientas para validar y documentar la API de manera automática.
 
@@ -406,3 +409,265 @@ INFO:     Application startup complete.
 
 ```
 
+# Clase 15: ¿Qué es Docker?
+
+--------------------
+
+Supongamos que estás trabajando en un proyecto de aplicación web con un equipo de desarrolladores. Cada desarrollador tiene su propia computadora y cada uno está utilizando un sistema operativo diferente (Windows, MacOS o Linux). Además, cada uno de ellos tiene diferentes versiones de las herramientas y bibliotecas necesarias para desarrollar la aplicación.
+
+Con Docker, puedes crear un contenedor que incluya todo lo necesario para ejecutar la aplicación, incluyendo el código, las herramientas y las bibliotecas. Luego, cada desarrollador puede ejecutar la aplicación en su propia computadora simplemente instalando Docker y ejecutando el contenedor. De esta manera, cada uno de los desarrolladores puede trabajar en el mismo entorno, sin importar el sistema operativo o las herramientas que tenga instaladas.
+
+Cuando esté lista para desplegar la aplicación en producción, puedes subir el contenedor a un repositorio de Docker y luego ejecutarlo en cualquier servidor que tenga Docker instalado. De esta manera, puedes asegurarte de que la aplicación funcione de la misma manera en todos los entornos, desde el desarrollo hasta la producción.
+
+# Clase 16: Instalación de Docker Engine en Ubuntu
+
+[Instalacion paso a paso](https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository)
+
+### Set up the repository
+
+Update the apt package index and install packages to allow apt to use a repository over HTTPS:
+
+```
+sudo apt-get update
+sudo apt-get install \
+    ca-certificates \
+    curl \
+    gnupg \
+    lsb-release
+```
+Add Docker’s official GPG key:
+```
+sudo mkdir -p /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+```
+Use the following command to set up the repository:
+```
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+```
+### Install Docker Engine
+```
+sudo apt-get update
+```
+Receiving a GPG error when running apt-get update?
+```
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
+sudo apt-get update
+```
+Install Docker Engine, containerd, and Docker Compose.
+```
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin
+```
+Verify that the Docker Engine installation is successful by running the hello-world image:
+```
+sudo docker run hello-world
+```
+Excpected Answer:
+
+```
+Unable to find image 'hello-world:latest' locally
+latest: Pulling from library/hello-world
+2db29710123e: Pull complete 
+Digest: sha256:94ebc7edf3401f299cd3376a1669bc0a49aef92d6d2669005f9bc5ef028dc333
+Status: Downloaded newer image for hello-world:latest
+
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+
+To generate this message, Docker took the following steps:
+ 1. The Docker client contacted the Docker daemon.
+ 2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+    (amd64)
+ 3. The Docker daemon created a new container from that image which runs the
+    executable that produces the output you are currently reading.
+ 4. The Docker daemon streamed that output to the Docker client, which sent it
+    to your terminal.
+
+To try something more ambitious, you can run an Ubuntu container with:
+ $ docker run -it ubuntu bash
+
+Share images, automate workflows, and more with a free Docker ID:
+ https://hub.docker.com/
+
+For more examples and ideas, visit:
+ https://docs.docker.com/get-started/
+
+```
+
+Clase 17: Dockerizando scripts de python
+
+---------------
+
+En esta clase y como pequeño proyecto de ejemplo crearemos un conversor de tipos de archivo estructurados utilizando
+la librería de Pandas, entre los archivos que se pueden convertir estan: csv, xlsx, json, xml.
+
+Ya teniendo el código vamos a explicar todo el proceso de dockerizado con python
+
+primero debemos crear un archivo:
+
+```
+Dockerfile
+```
+El cual tendrá adentro la siguiente información:
+
+```
+FROM python:3.10
+WORKDIR /app
+COPY requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
+COPY . /app
+CMD bash -c "while true; do sleep 1; done"
+```
+Explicación:
+
+FROM python:3.10 > Voy a utilizar el docker que contiene Python 3.10
+
+WORKDIR /app > El docker tendrá una carpeta raíz llamada app
+
+COPY requirements.txt /app/requirements.txt > copiare el archivo local de requirements.txt a la ruta del docker /app/requirements.txt
+
+RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt > Dentro del docker instalaré todas las dependencias necesarias de python
+
+COPY . /app > Copiaré todo el contenido de mi carpeta raíz . a la carpeta raíz de docker app
+
+CMD bash -c "while true; do sleep 1; done" > Mantendré el docker activo
+
+El siguiente archivo a crear es:
+
+
+```
+docker-compose.yml
+```
+
+El cuál contiene:
+
+```
+services:
+  app-convertor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+```
+
+Lo único importante es que: app-convertor - es el nombre que uno elige para su aplicación docker
+
+Teniendo los archivos preparados es momento de empezar con el proceso de dockerizado. 
+
+```
+sudo docker compose build
+```
+
+Respuesta esperada:
+```
+ => => transferring context: 165.48MB                                                                                                                                                                                                                                                                              1.0s
+ => [2/5] WORKDIR /app                                                                                                                                                                                                                                                                                             0.0s
+ => [3/5] COPY requirements.txt /app/requirements.txt                                                                                                                                                                                                                                                              0.0s
+ => [4/5] RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt                                                                                                                                                                                                                                       13.6s
+ => [5/5] COPY ./ app                                                                                                                                                                                                                                                                                              1.1s
+ => exporting to image                                                                                                                                                                                                                                                                                             1.1s
+ => => exporting layers                                                                                                                                                                                                                                                                                            1.1s
+ => => writing image sha256:b2aceb4d34d05c4fa1353b377e0ab81a7fb1338070e39276e1e2b170bce1c371 
+```
+
+Levantamos el contenedor:
+
+```
+sudo docker compose up -d
+```
+
+Checamos el estado del mismo:
+
+```
+sudo docker compose ps
+```
+
+Respuesta esperada:
+```
+NAME                                IMAGE                             COMMAND                  SERVICE             CREATED             STATUS              PORTS
+c17_simple_docker-app-convertor-1   c17_simple_docker-app-convertor   "/bin/sh -c 'bash -c…"   app-convertor       27 seconds ago      Up 26 seconds 
+```
+Ahora vamos a entrar el docker compose:
+
+```
+sudo docker compose exec app-convertor bash
+```
+
+Podemos observar todos los archivos que se encuentran en nuestro docker file:
+
+```
+ls -l
+```
+Respuesta esperada:
+```
+-rw-rw-r-- 1 root root  199 Jan 10 20:39 Dockerfile
+-rw-rw-r-- 1 root root  669 Jan 10 20:02 README.MD
+drwxrwxr-x 5 root root 4096 Jan 10 20:33 conversor_env
+drwxrwxr-x 3 root root 4096 Jan 10 20:33 core
+-rw-rw-r-- 1 root root   85 Jan 10 20:31 docker-compose.yml
+-rw-rw-r-- 1 root root  611 Jan 10 19:54 main.py
+-rw-rw-r-- 1 root root  136 Jan 10 19:54 requirements.txt
+-rw-rw-r-- 1 root root   54 Jan 10 20:00 test.csv
+-rw-rw-r-- 1 root root  103 Jan 10 19:39 test.json
+-rw-rw-r-- 1 root root 4974 Jan 10 18:56 test.xlsx
+-rw-rw-r-- 1 root root  281 Jan 10 18:57 test.xml
+-rw-rw-r-- 1 root root   54 Jan 10 19:52 test_name.csv
+```
+
+si quiero abrir un archivo para verlo:
+```
+cat main.py
+```
+
+Como ahora todo ya está listo y funcionando, entonces podemos ejecutar el código python:
+
+
+```bash
+python main.py test.csv json -n c_json
+```
+
+Salimos de docker:
+
+```bash
+exit
+```
+
+Verificamos que sigue corriendo el contenedor:
+
+```bash
+sudo docker compose ps
+```
+Podemos exportar el contenedor para compartirlo a otros
+```bash
+sudo docker export c17_simple_docker-app-convertor-1 > app-convertor.tar
+```
+Detenemos el container
+```bash
+sudo docker compose down
+```
+
+Y si tenemos un container en formato .tar, podemos importarlo con el siguiente código:
+```bash
+sudo docker import my-container.tar my-image:latest
+```
+
+Para ver una lista de todos los contenedores activos e inactivos:
+
+```bash
+sudo docker ps -a
+```
+
+Respuesta esperada:
+```
+CONTAINER ID   IMAGE                             COMMAND                  CREATED              STATUS                        PORTS     NAMES
+7b329a5041b2   c17_simple_docker-app-convertor   "/bin/sh -c 'bash -c…"   About a minute ago   Exited (137) 24 seconds ago             c17_simple_docker-app-convertor-1
+f7ff6602f4f6   hello-world                       "/hello"                 6 hours ago          Exited (0) 6 hours ago                  thirsty_elbakyan
+```
+
+Detener un container por su id:
+
+```bash
+sudo docker stop 7b329a5041b2
+```

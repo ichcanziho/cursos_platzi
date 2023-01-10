@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='utf-8'?>
+<data>
+  <row>
+    <nombre>juan</nombre>
+    <apellido>pérez</apellido>
+  </row>
+  <row>
+    <nombre>omar</nombre>
+    <apellido>landa</apellido>
+  </row>
+  <row>
+    <nombre>gerardo</nombre>
+    <apellido>huerta</apellido>
+  </row>
+</data>

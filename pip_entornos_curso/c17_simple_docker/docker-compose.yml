@@ -1,0 +1,7 @@
+services:
+  app-convertor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
