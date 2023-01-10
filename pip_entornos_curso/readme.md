@@ -341,3 +341,68 @@ Ahora crearemos nuestro archivo de requirements
 ```bash
 pip freeze > requirements.txt
 ```
+
+# Clase 13: Pandas
+
+------
+
+En esta clase solamente se habló un poquito de la librería de pandas, no es muy útil para este específico curso.
+
+Esta clase solo fue mencionada para hablar de la instalación de pandas en el venv
+
+```bash
+pip install pandas
+```
+
+# Clase 14: Web Server con FastAPI
+
+### FastApi 
+Es un framework de Python para crear aplicaciones web rápidas y seguras. Utilice la mejor OpenAPI para definir la interfaz de la aplicación y proporcione un conjunto de herramientas para validar y documentar la API de manera automática.
+
+### Uvicorn 
+
+Es un servidor ASGI (Asynchronous Server Gateway Interface) de alto rendimiento para ejecutar aplicaciones ASGI como FastAPI. Es una alternativa a otros servidores ASGI como Daphne y Hypercorn.
+[Documentación de Uvicorn.](https://www.uvicorn.org/)
+
+FastAPI y Uvicorn se utilizan juntos para proporcionar un entorno rápido y fácil de usar para el desarrollo y el uso de aplicaciones web basadas en ASGI.
+Teniendo activado nuestro entorno de request, vamos a instalar dos nuevas dependencias:
+
+### Instalando dependencias
+
+```bash
+pip install fastapi
+pip install "uvicorn[standard]"
+```
+
+
+```python
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get("/")
+def read_root():
+    return {"Hello": "World"}
+
+if __name__ == "__main__":
+    app.run()
+```
+
+Una vez que se ha terminado de crear el archivo .py de la aplicación API para montarlo con uvicorn se debe hacer lo siguiente:
+```
+uvicorn <nombre_del_archivo_python>:<nombre_que_pondras_al_proyecto> --reload
+uivcorn main:app --reload
+```
+
+Se espera la siguiente respuesta:
+
+```
+INFO:     Will watch for changes in these directories: ['/home/gabriel/Documentos/python/platzi/pip_entornos_curso/c14_webserver']
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [15748] using WatchFiles
+INFO:     Started server process [15750]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+
+```
+
