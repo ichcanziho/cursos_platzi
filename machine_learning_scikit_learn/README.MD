@@ -151,6 +151,102 @@ Temas de probabilidad y estadistica a repasar:
 
 # 2. Iniciar un proyecto con sklearn
 
+## 2.1 Configuración de nuestro entorno Python
+
+En este curso estaremos haciendo uso de varias librerías complementarías de python. 
+Es por eso que es buena idea no tener necesariamente la versión más actualizada de python desde la página oficial.
+Esto se debe a que existe una versión por ejemplo Python 3.12 actualmente, las librerias que usaremos toman un tiempo
+en adaptar su código a la verisón más reciente de python, y por temas de compatilibdad sería una mejor idea tener una
+versión instalada menos reciente que ya haya sido completamente probada por nuestras otras dependencias, en este caso por
+ejemplo python 3.10.
+
+Para verificar la versión de python que tenemos instalada:
+
+```bash
+python --version
+```
+
+Primero actualicemos nuestra gestor de instalador de paquetes de python:
+
+```bash
+python3 -m pip install --upgrade pip
+```
+
+Para este proyecto estaremos utilizando entornos virtuales de python, para encapsular nuestros paquetes.
+Para más información sobre entornos virtuales, consulta el siguiente repositorio de ayuda:
+
+[Entornos virutales en python](https://github.com/ichcanziho/cursos_platzi/tree/master/pip_entornos_curso)
+
+Primer paso: Instalación de virtualenv en python:
+
+```bash
+python3 -m pip install virtualenv
+```
+
+Creando el entorno virtual:
+
+```bash
+python3 -m virtualenv skl_env
+```
+
+Activando el entorno virtual:
+
+```bash
+source skl_env/bin/activate
+```
+
+Comprobando que es un entorno virgen:
+
+```bash
+pip freeze
+```
+
+Como no hemos instalado ninguna dependencia externa entonces el comando anterior
+no debería haber regresado nada. 
+
+## 2.1 Instalación de librerías en python:
+
+Instalación de librerías:
+```bash
+pip install numpy
+pip install scipy
+pip install joblib
+pip install pandas
+pip install matplotlib
+pip install seaborn
+pip install scikit-learn
+```
+
+Creación del archivo de requirements.txt
+
+```bash
+pip freeze > requirements.txt
+```
+
+Verificando que sklearn está activo sin problemas.
+
+```python
+import sklearn
+print(sklearn.__version__)
+```
+
+## 2.3 Datasets que usaremos en el curso
+
+> [Datasets e informacion sobre ellos en el repo](datasets)
+
+- [World Happiness Report](https://www.kaggle.com/unsdsn/world-happiness): Es un dataset que desde el 2012 recolecta variables sobre diferentes países y las relaciona con el nivel de felicidad de sus habitantes.
+
+> **Nota: Este data set lo vamos a utilizar para temas de regresiones**
+
+- [The Ultimate Halloween Candy Power Ranking](https://www.kaggle.com/fivethirtyeight/the-ultimate-halloween-candy-power-ranking): Es un estudio online de 269 mil votos de más de 8371 IPs deferentes. Para 85 tipos de dulces diferentes se evaluaron tanto características del dulce como la opinión y satisfacción para generar comparaciones. 
+
+> **Nota: Este dataset lo vamos a utilizar para temas de clustering**
+
+- [Heart disease prediction](https://www.kaggle.com/c/SAheart): Es un subconjunto de variables de un estudio que realizado en 1988 en diferentes regiones del planeta para predecir el riesgo a sufrir una enfermedad relacionada con el corazón. 
+
+> **Nota: Este data set lo vamos a utilizar para temas de clasificación.**
+
+
 # 3. Optimización de features
 
 # 4. Regresiones robustas
