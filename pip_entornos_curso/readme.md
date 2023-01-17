@@ -395,6 +395,7 @@ Una vez que se ha terminado de crear el archivo .py de la aplicación API para m
 ```
 uvicorn <nombre_del_archivo_python>:<nombre_que_pondras_al_proyecto> --reload
 uivcorn main:app --reload
+uvicorn main:app --reload
 ```
 
 Se espera la siguiente respuesta:
@@ -659,6 +660,11 @@ Para ver una lista de todos los contenedores activos e inactivos:
 sudo docker ps -a
 ```
 
+Otra forma similar:
+```bash
+sudo docker images
+```
+
 Respuesta esperada:
 ```
 CONTAINER ID   IMAGE                             COMMAND                  CREATED              STATUS                        PORTS     NAMES
@@ -671,3 +677,17 @@ Detener un container por su id:
 ```bash
 sudo docker stop 7b329a5041b2
 ```
+
+Error starting userland proxy: listen tcp4 0.0.0.0:80: bind: address already in use
+
+
+sudo apt install net-tools
+sudo netstat -nlptu | grep 80
+
+tcp6       0      0 :::80                   :::*                    ESCUCHAR    853/apache2 
+
+sudo apachectl stop
+
+AH00558: apache2: Could not reliably determine the server's fully qualified domain name, using 127.0.1.1. Set the 'ServerName' directive globally to suppress this message
+
+sudo apachectl start
