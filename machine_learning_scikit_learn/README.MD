@@ -249,6 +249,340 @@ print(sklearn.__version__)
 
 # 3. Optimización de features
 
+## 3.1 ¿Cómo afectan nuestros features a los modelos de Machine Learning?
+
+El éxito o fracaso de nuestros proyectos de machine learning, dependerá en gran medida de la calidad de los datos de entrada
+con los que serán entrenados los mismos.
+
+**¿Qué son los features?** Son los atributos de nuestro modelo que usamos para realizar una interferencia o predicción. Son las variables de entrada.
+
+Más features simpre es mejor, ¿verdad?
+**La respuesta corta es: NO**
+
+En realidad si tenemos variables que son irrelevantes pasarán estas cosas:
+
+- Se le abrirá el paso al ruido.
+- Aumentará el costo computacional.
+- Si introducimos demasiados features y estos tienen valores faltantes, se harán sesgos muy significativos y vamos a perder esa capacidad de predicción.
+
+> Nota: Hacer una buena selección de nuestro features, hará que nuestros algoritmos corran de una manera mas eficiente.
+
+Una de las formas de saber que nuestros features han sido bien seleccionados es con el **sesgo (bias)** y la **varianza**.
+
+- Una mala selección de nuestro features nos puede llevar a alguno de esos dos escenarios indeseados.
+
+![varianzas-vs-sesgo](https://imgur.com/hyJhWFL.png)
+
+> Nota: El sesgo (bias) es la diferencia que hay entre nuestras predicciones y los valores reales.
+> Por otro lado, la varianza es la distancia entre diferentes predicciones que pertenecen a la misma clase.
+
+Algo que debemos que recordar es que nuestro modelo de ML puede caer en uno de 2 escenarios que debemos evitar:
+
+![over-under-balan](https://imgur.com/rWib1tG.png)
+
+- **Underfitting**: Significa que nuestro modelo es demasiado simple, en donde nuestro modelo no está captando los features y nuestra variable de salida, por lo cual debemos de investigar variables con mas significado o combinaciones o transformaciones para poder llegar a nuestra variable de salida.
+
+- **Overfitting**: Significa que nuestro modelo es demasiado complejo y nuestro algoritmo va a intentar ajustarse a los datos que tenemos, pero no se va a comportar bien con los datos del mundo real. Si tenemos overfiting lo mejor es intentar seleccionar los features de una manera mas critica descartando aquellos que no aporten información o combinando algunos quedándonos con la información que verdaderamente importa.
+
+> - Cuando tenemos un sesgo (bias) alto lo que se hace es añadir mas features, aumentar el numero de datos no ayudara mucho.
+> - Cuando tenemos un varianza (variance) alto lo que se hace es aumentar el numero de datos para que nuestro modelo generalice mejor.
+
+**¿Qué podemos hacer para solucionar estos problemas?**
+
+- Aplicar técnicas reducción de la dimensionalidad. Utilizaremos el algoritmo de PCA.
+- Aplicar la técnica de la regulación, que consiste en penalizar aquellos features que no le estén aportando o que le estén restando información a nuestro modelo.
+- Balanceo: Se utilizará Oversampling y Undersampling en problemas de rendimiento donde tengamos un conjunto de datos que está desbalanceado, por ejemplo en un problema de clasificación donde tenemos muchos ejemplos de una categoría y muy pocos de otra.
+
+## 3.2 Introducción al Algoritmo PCA (Principal Component Analysis)
+
+**¿Por qué usaríamos este algoritmo?**
+
+- Porque en machine learning es normal encontrarnos con problemas donde tengamos una enorme cantidad de features en donde hay relaciones complejas entre ellos y con la variable que queremos predecir.
+
+**¿Cuando utilizar un algoritmo PCA?**
+- Nuestro dataset tiene un número alto de features y no todos sean significativos.
+- Hay una alta correlación entre los features.
+- Cuando hay overfiting.
+- Cuando implica un alto coste computacional.
+
+**¿En quŕ consiste el algoritmo PCA?**
+
+Básicamente en reducir la complejidad del problema:
+
+1. Seleccionando solamente las variables relevantes.
+2. Combinándolas en nuevas variables que mantengan la información más importante (varianza de los features).
+
+![pca](./imgs/im4.png "pca")
+
+**¿Cuáles son pasos para llevar a cabo el algoritmo PCA?**
+
+1. Calculamos la matriz de covarianza para expresar las relaciones entre nuestro features.
+2. Hallamos los vectores propios y valores propios de esta matriz, para medir la fuerza y variabilidad de estas relaciones.
+3. Ordenamos y escogemos los vectores propios con mayor variabilidad, esto es, aportan más información.
+
+**¿Qué hacer si tenemos una PC de bajos recursos?**
+
+- Si tenemos un dataset demasiado exigente, podemos usar una variación como IPCA.
+- Si nuestros datos no tienen una estructura separable linealmente, y encontramos un KERNEL que pueda mapearlos podemos usar KPCA.
+
+### Conceptos a tener en cuenta:
+
+**varianza:** Es el promedio de la suma de los cuadrados de la distancia entre un elemento y su promedio.
+
+![varianza](./imgs/im5.png "varianza")
+
+¿Qué pasa cuando los puntos se encuentran en un plano bidimensional?
+
+![varianza](./imgs/im6.png "varianza")
+
+Para ello puedo obtener la varianza en cada uno de los ejes, y-varianza y la x-varianza.
+
+Sin embargo, la varianza por sí mismo no es completamente determinante, pues puede haber conjuntos diferentes que tengan la misma varianza, 
+veamos el siguiente ejemplo: 
+
+![varianza](./imgs/im7.png "varianza")
+
+Tanto el conjunto de la izquierda como el de la derecha tienen inclinaciones diferentes, pero en terminos de x-varianza y y-varianza son lo
+mismo. Para lidiar con esta situación usaremos la covarianza.
+
+La covarianza es el promedio del producto de las coordenadas:
+
+![varianza](./imgs/im8.png "varianza")
+
+De esta forma podemos distinguir que la distribución de puntos del lado izquierdo tiene una covarianza negativa y del lado derecho es positiva.
+
+Otros terminos que debo investigar:
+- Eigenvectors
+- Eigenvalues
+
+Para más información y recordar PCA [Explicación PCA](https://www.youtube.com/watch?v=7My_PBhxeP4&t=0s)
+
+
+## 3.3 Preparación de datos para PCA e IPCA
+
+Empezamos importando los librerias que vamos a utilizar:
+
+```python
+import pandas as pd
+from scipy.sparse.construct import random
+import sklearn
+import matplotlib.pyplot as plt
+
+from sklearn.decomposition import PCA
+from sklearn.decomposition import IncrementalPCA
+
+from sklearn.linear_model import LogisticRegression
+
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+```
+
+Lectura del dataset y separación entre los datos independientes (predictores) y dependientes (target)
+
+```python
+df_heart = pd.read_csv('./datasets/heart.csv')
+print(df_heart.head(5))
+# Guardamos nuestro dataset sin la columna de target
+df_features = df_heart.drop(['target'], axis=1)
+# Este será nuestro dataset, pero sin la columna
+df_target = df_heart['target']
+```
+Valor esperado:
+
+```
+   age  sex  cp  trestbps  chol  fbs  ...  exang  oldpeak  slope  ca  thal  target
+0   52    1   0       125   212    0  ...      0      1.0      2   2     3       0
+1   53    1   0       140   203    1  ...      1      3.1      0   0     3       0
+2   70    1   0       145   174    0  ...      1      2.6      0   0     3       0
+3   61    1   0       148   203    0  ...      0      0.0      2   1     3       0
+4   62    0   0       138   294    1  ...      0      1.9      1   3     2       0
+
+```
+
+Normalización de datos (paso indispensable para utilizar de forma correcta PCA) y creación de datos particiones
+de entrenamiento y testing.
+
+```python
+# Normalizamos los datos
+df_features = StandardScaler().fit_transform(df_features)
+
+# Partimos el conjunto de entrenamiento.
+# Para añadir replicabilidad usamos el random state
+X_train, X_test, y_train, y_test = train_test_split(df_features,
+                                                    df_target,
+                                                    test_size=0.3,
+                                                    random_state=42)
+
+print(X_train.shape)
+print(y_train.shape)
+```
+Valor esperado
+```
+[5 rows x 14 columns]
+(717, 13)
+(717,)
+```
+
+Nota sobre el funcionamiento de StandardScaler de Sklearn
+```
+# La estandarizacion que hace sklearn con StandardScaler es: 
+z = (x - u) / s
+x = valor
+u = media
+s = desviacion estandar
+```
+**Partimos el conjunto de entrenamiento.**
+
+- `X` representa los features. Normalmente, es una matriz, por eso la mayúscula.
+- `y` representa el target. Siempre es un vector, nunca una matriz, por eso la minúscula.
+
+**Para añadir replicabilidad usamos el random state**
+
+- `random_state` es para dejar estáticos los valores aleatorios que te genera, de forma que al volverlo a correr siga trabajando con esos valores aleatorios y no te genere nuevos valores aleatorios.
+
+## 3.4 Implementación del Algoritmo PCA e IPCA
+
+Empecemos por instanziar un modelo de clasificación que nos sirva para comparar el rendimiento de nuestros nuevos features utilizando PCA
+
+```python
+# Configuración de la regresión logística
+logistic = LogisticRegression(solver='lbfgs')
+```
+
+Ahora entrenemos a nuestro algoritmo PCA con nuestros datos de entrada, algo importante a mencionar es que por defecto el número de componentes que utiliza
+PCA es el mínimo entre la cantidad de muestras y la cantidad de features, pero en general nosotros buscamos tener un valor más pequeño que el número de features
+de tener el mismo entonces no tendría mucho sentido usar PCA.
+
+```python
+# PCA
+# Llamamos y configuramos nuestro algoritmo PCA
+# El número de componentes es opcional
+# Si no le pasamos el número de componentes lo asignará de esta forma:
+# a: n_components = min(n_muestras, n_features)
+pca = PCA(n_components=3)
+# Entrenando algoritmo de PCA
+pca.fit(X_train)
+```
+
+Ahora que nuestro algoritmo de PCA ha sido entrenado, debemos transformar nuestros datos de dependientes (X) de entrenamiento y validación utilizando PCA esto
+para que el modelo de regresión logística NO utilice las 13 features originales, sino en este caso solamente 3. 
+
+```python
+# Configuramos los datos de entrenamiento con PCA
+df_train = pca.transform(X_train)
+df_test = pca.transform(X_test)
+# Entrenamos la regresion logistica con datos del PCA
+logistic.fit(df_train, y_train)
+```
+
+Finalmente, podemos observar cuál es el Accuracy de nuestro modelo.
+
+```python
+# Calculamos nuestra exactitud de nuestra predicción
+print('Score/Accuracy PCA: ', logistic.score(df_test, y_test))
+```
+
+Valor esperado:
+```
+Score/Accuracy PCA:  0.7857142857142857
+```
+
+Ahora podemos repetir la metodología pero para IPCA y comparar los resultados:
+
+```python
+# IPCA
+# Haremos una comparación con incremental PCA, haremos lo mismo para el IPCA.
+# El parámetro batch se usa para crear pequeños bloques,
+# de esta forma podemos ir entrenandolos poco a poco y combinarlos en el resultado final
+ipca = IncrementalPCA(n_components=3, batch_size=10)
+# Entrenando algoritmo de IPCA
+ipca.fit(X_train)
+
+# Configuramos los datos de entrenamiento con IPCA
+df_train = ipca.transform(X_train)
+df_test = ipca.transform(X_test)
+# Entrenamos la regresion logistica con datos del IPCA
+logistic.fit(df_train, y_train)
+print('Score/Accuracy IPCA: ', logistic.score(df_test, y_test))
+```
+Valor esperado:
+```
+Score/Accuracy IPCA:  0.8051948051948052
+```
+
+### Bonus: Comparar el accuracy de PCA e IPCA utilizando diferentes valores en `n_components`
+
+```python
+# Bonus
+max_features = X_train.shape[1]  # El máximo número de features en este caso sería de 13
+pca_data = {'accuracy': [],
+            'n_components': []}
+ipca_data = {'accuracy': [],
+             'n_components': []}
+# PCA
+print("I'm running PCA")
+for n in range(1, max_features+1):
+    pca = PCA(n_components=n)
+    pca.fit(X_train)
+    df_train = pca.transform(X_train)
+    df_test = pca.transform(X_test)
+    logistic.fit(df_train, y_train)
+    acccuracy = logistic.score(df_test, y_test)
+    print(f"PCA with n_componentes = {n} give us {acccuracy} Accuracy")
+    pca_data['accuracy'].append(acccuracy)
+    pca_data['n_components'].append(n)
+
+# IPC
+print("I'm running IPCA")
+for n in range(1, max_features+1):
+    ipca = IncrementalPCA(n_components=n, batch_size=max_features+1)
+    ipca.fit(X_train)
+    df_train = ipca.transform(X_train)
+    df_test = ipca.transform(X_test)
+    logistic.fit(df_train, y_train)
+    acccuracy = logistic.score(df_test, y_test)
+    print(f"IPCA with n_componentes = {n} give us {acccuracy} Accuracy")
+    ipca_data['accuracy'].append(acccuracy)
+    ipca_data['n_components'].append(n)
+
+plt.plot(pca_data['n_components'], pca_data['accuracy'], label='PCA')
+plt.plot(ipca_data['n_components'], ipca_data['accuracy'], label='IPCA')
+plt.title('N Components vs Accuracy - PCA vs IPCA')
+plt.xlabel('Number of Components')
+plt.ylabel('Accuracy of Logistic-Regression')
+plt.legend()
+
+plt.savefig("resultados.png")
+plt.show()
+plt.close()
+```
+
+Respuesta esperada:
+
+![resultados](./1_optimización_de_features/resultados.png "resultados")
+
+> ## Resumen
+
+**En esta sección lo que hicimos fue:**
+
+1. Configuración de la regresión logística
+2. PCA
+- Llamamos y configuramos nuestro algoritmo PCA. El número de componentes es opcional. Si no le pasamos el número de componentes lo asignará de esta forma: n_components = min(n_muestras, n_features)
+- Entrenando algoritmo de PCA
+- Configuramos los datos de entrenamiento con PCA
+- Entrenamos la regresión logística con datos del PCA
+- Calculamos nuestra exactitud de nuestra predicción
+3. IPCA
+- Haremos una comparación con incremental PCA, haremos lo mismo para el IPCA. El parámetro batch se usa para crear pequeños bloques, de esta forma podemos ir entrenandolos poco a poco y combinarlos en el resultado final
+- Mismos pasos a partir del 2 que para PCA.
+
+> ## Conclusión
+>
+> El rendimiento de los dos algoritmos es casi exactamente el mismo, pero hay que considerar que nuestro dataset tenia 13 fetures originalmente para intentar predecir una clasificación binaria y utilizando PCA, solo tuvimos que utilizar 3 features artificiales que fueron los que nos   devolvió PCA para llegar a un resultado coste computacional y estamos utilizando información que es realmente relevante para nuestro modelo. Finalmente, la gráfica revela que el mejor resultado de 
+> clasificación se obtiene con PCA utilizando únicamente 7 componentes, demostrando que es completamente posible que un modelo con menos features pueda obtener resultados iguales o incluso mejores que un modelo con mayor cantidad de features.
+
+[Código completo de está sección](1_optimización_de_features/pca.py)
+
 # 4. Regresiones robustas
 
 # 5. Métodos de ensamble aplicados a clasificación
@@ -260,4 +594,6 @@ print(sklearn.__version__)
 # 8. Salida a producción
 
 # Conclusiones
+
+https://github.com/francomanca93/machine-learning-profesional-con-scikit-learn/blob/main/proyecto.md
 
