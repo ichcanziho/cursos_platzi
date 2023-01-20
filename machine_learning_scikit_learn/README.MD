@@ -594,6 +594,362 @@ cd 1_optmización_de_features
 python pca.py
 ```
 
+## 3.5 Kernels y KPCA
+
+Un **Kernel** es una función matemática que toma mediciones que se comportan de manera no lineal y las proyecta en un espacio dimensional más grande en donde sen linealmente separables.
+
+Pongamos de ejemplo el siguiente escenario hipotético:
+
+![kernels1](./imgs/im9.png "kernels1")
+
+Si nuestro objetivo fuera clasificar los puntos verdes de los rojos, esto genera que está mezcla no pueda ser separada de forma lineal.
+A través de una única línea, no existe manera de clasificarlos correcta y balanceadamente, pero utilizando una función de Kernel podemos
+agregar una nueva dimensión, en este caso proyectar hacia arriba lo cual nos permite tener más opciones al momento de buscar formas lineales de
+separarlos. 
+
+Entre las funciones de Kernels más comunes podemos mencionar a los siguientes:
+
+![kernels2](./imgs/im10.png "kernels2")
+
+Ejemplo de la forma en que diferentes Kernels interactúan con la forma de clasificar de un mismo clasificador.
+
+![kernels3](./imgs/im11.png "kernels3")
+
+
+> ### Conclusión
+> 
+> Si tenemos datos bastante complejos que no pueden ser "segmentados" con líneas o combinaciones de líneas podemos utilizar la
+> estrategia de kernel con el fin de aumentar el número de dimenciones y con ello mejorar a nuestro clasificador.
+
+> ## Implementación en código
+
+Empezamos a importar las librerías que vamos a usar (muy similares al módulo anterior)
+
+```python
+import pandas as pd
+from sklearn.decomposition import KernelPCA
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+```
+
+Lectura del dataset y separación entre los datos independientes (predictores) y dependientes (target). Normalizado de datos y separación en training y testing:
+
+```python
+df_heart = pd.read_csv('../datasets/heart.csv')
+    
+    # Guardamos nuestro dataset sin la columna de target
+    df_features = df_heart.drop(['target'], axis=1)
+    # Este será nuestro dataset, pero sin la columna
+    df_target = df_heart['target']
+    
+    # Normalizamos los datos
+    df_features = StandardScaler().fit_transform(df_features)
+    
+    # Partimos el conjunto de entrenamiento.
+    # Para añadir replicabilidad usamos el random state
+    X_train, X_test, y_train, y_test = train_test_split(df_features,
+                                                        df_target,
+                                                        test_size=0.3,
+                                                        random_state=42)
+```
+
+Instanciamos a nuestro clasificador:
+
+```python
+# Configuracion de la regresión logística
+logistic = LogisticRegression(solver='lbfgs')
+```
+
+Y aquí viene la única y principal diferencia respecto al código anterior, la instancia a PCA aplicado con Kernel.
+
+```python
+# KPCA
+# Alternativas a kernel, "linear, poly, rbf"
+kpca = KernelPCA(n_components=4, kernel='poly')
+kpca.fit(X_train)
+```
+
+Recordemos que PCA NO es un clasificador, únicamente es una forma de reducir la dimensionalidad de nuestros datasets, sin embargo pese a no
+clasificar los datos, es necesario entrenarlo sobre nuestro conjunto de datos de entrenamiento. Una vez el modelo haya sido entrenado entonces
+puede ser utilizado para transformar a los datos de entrada de entrenamiento y validación y estos modelos ya transformados son los que usaremos
+en nuestro clasificador de cabecera. 
+
+```python
+# Configuramos los datos de entrenamiento con PCA
+df_train = kpca.transform(X_train)
+df_test = kpca.transform(X_test)
+```
+Ya con los datos transformados por KPCA entonces podemos proceder a entrenar y evaluar a nuestro modelo:
+
+```python
+# Entrenando algoritmo de KPCA
+# Entrenamos la regresion logistica con datos del PCA
+logistic.fit(df_train, y_train)
+# Calculamos nuestra exactitud de nuestra predicción
+print('Score/Accuracy KPCA: ', logistic.score(df_test, y_test))
+```
+
+Valor esperado:
+
+```
+Score/Accuracy KPCA:  0.7987012987012987
+```
+
+[Código Completo](1_optimización_de_features/kpca.py)
+
+## 3.6 ¿Qué es la regularización y cómo aplicarla?
+La regularización es una técnica que consiste en disminuir la complejidad de nuestro modelo a través de una penalización aplicada a sus variables más irrelevantes.
+
+**¿Que busca la regularización?**
+
+![regularizacion1](./imgs/im12.png "regularizacion1")
+
+En términos generales la regularización busca reducir la varianza incrementando el sesgo de modelo. Pero, ¿por qué esto tiene sentido?
+
+Supongamos que nuestros datos de entrenamiento son los puntos rojos y los datos de validación o prueba son los verdes. En general nuestros
+datos de entrenamiento siempre serán menos cantidad y diversidad que los que tengamos en un ambiente de producción en escenarios reales. 
+Es normal que tengamos un modelo que sea muy bueno prediciendo nuestros valores de entrenamiento "overfitting", pero al momento de predecir
+los valores de prueba el rendimiento caiga. La distancia que hay entre nuestra predicción y el valor real es la varianza. Pero si nosotros
+introducimos un poco de sesgo al modelo se reducirá el "overfitting" con ello la precisión en los datos de entrenamiento disminuirá, pero el modelo será
+más versátil para lidiar con datos no vistos y será en términos generales un mejor modelo de clasificación para los datos de prueba.
+De esta manera, aumentando el sesgo en el modelo pudimos reducir la varianza del mismo. 
+
+Definamos el concepto de `perdida`. La perdida es una métrica que nos dice que tan lejos están nuestras predicciones del valor real que queremos predecir.
+A menor sea la perdida mejor será nuestro modelo. 
+
+![regularizacion2](./imgs/im13.png "regularizacion2")
+
+Naturalmente, conforme entrenamos a nuestro modelo sobre los datos ya conocidos "conjunto de entrenamiento" este se irá puliendo y de esta forma disminuyendo 
+la perdida, esto se debe a que cada vez se está ajustando más a los valores del conjunto de entrenamiento. Sin embargo, en la vida real, lo que nos
+interesa optimizar más que nada es disminuir la perdida en el conjunto de validación. 
+
+Suele ocurrir que conforme un modelo optimiza mucho su perdida en el conjunto de validación tiende a empeorar su rendimiento en el conjunto de validación, a este
+fenómeno se le conoce como overfitting, y en la gráfica se ve representado como el punto de inflección de la línea roja, en dónde en lugar de seguir disminuyendo
+la perdida en el conjunto de validación esta empieza a aumentar, esto se debe a que el modelo está dejando de generalizar para empezar a memorizar.
+
+> Conclusiones:
+>
+> - La regularización aumenta el sesgo y disminuye la varianza con el objetivo de mejorar la generalización del modelo.
+> .
+> - PCA: Combinábamos variables creando así variables artificiales.
+> - Regularización: Se penaliza a las variables que aportan menos información.
+> - Ambas buscan disminuir la complejidad del modelo.
+
+
+### Tipos de regularización
+
+[Ridge vs Lasso Regression | StatQuest with Josh Starmer | Youtube](https://www.youtube.com/watch?v=Xm2C_gTAl8c)
+
+- **L1 Lasso**: Para reducir la complejidad a través de eliminación de features que no aportan demasiado al modelo.
+  - Penaliza a los features que aporta poca información volviéndolos cero, eliminado el ruido que producen en el modelo.
+
+![lasso](imgs/im14.png)
+
+![lasso-pic](https://imgur.com/IzzR5mc.png)
+
+- **L2 Ridge**: Reducir la complejidad disminuyendo el impacto de ciertos features a nuestro modelo.
+  - Penaliza los features poco relevantes, pero no los vuelve cero. Solamente limita la información que aportan a nuestro modelo.
+
+![ridge](imgs/im15.png)
+
+![ridge-pic](https://imgur.com/kn0gywb.png)
+
+- **ElasticNet**: Es una combinación de las dos anteriores.
+
+> Conclusión
+> Lasso vs Ridge.
+>
+> 1. No hay un campeón definitivo para todos los problemas.
+> 2. Si hay pocos features que se relacionen directamente con la variable a predecir: **Probar Lasso**.
+> 3. Si hay varios features relacionados con la variable a predecir: **Probar Ridge**.
+
+## 3.7 Implementacion de Lasso y Ridge
+
+Cargamos nuestras librerías:
+
+```python
+import pandas as pd
+from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import Lasso
+from sklearn.linear_model import Ridge
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error as mse
+```
+
+Creamos una función que nos permita entrenar al modelo, y evaluar su rendimiento con una métrica parametrizada.
+
+```python
+def fit_predict_score(model, x_train, y_train, x_test, y_test, metric) -> float:
+    model.fit(x_train, y_train)
+    y_predict = model.predict(x_test)
+    score = metric(y_test, y_predict)
+    return score
+```
+
+Cargamos nuestro dataset:
+
+```python
+dataset = pd.read_csv("../datasets/happines.csv")
+print(dataset.describe())
+```
+Valor esperado:
+
+```
+             rank       score        high  ...  generosity  corruption    dystopia
+count  155.000000  155.000000  155.000000  ...  155.000000  155.000000  155.000000
+mean    78.000000    5.354019    5.452326  ...    0.246883    0.123120    1.850238
+std     44.888751    1.131230    1.118542  ...    0.134780    0.101661    0.500028
+min      1.000000    2.693000    2.864884  ...    0.000000    0.000000    0.377914
+25%     39.500000    4.505500    4.608172  ...    0.154106    0.057271    1.591291
+50%     78.000000    5.279000    5.370032  ...    0.231538    0.089848    1.832910
+75%    116.500000    6.101500    6.194600  ...    0.323762    0.153296    2.144654
+max    155.000000    7.537000    7.622030  ...    0.838075    0.464308    3.117485
+
+[8 rows x 11 columns]
+```
+
+Optamos por conservar únicamente un par de features y creamos nuestros conjuntos de entrenamiento y testing:
+
+```python
+# Vamos a elegir los features que vamos a usar
+X = dataset[['gdp', 'family', 'lifexp', 'freedom',
+             'corruption', 'generosity', 'dystopia']]
+# Definimos nuestro objetivo, que sera nuestro data set, pero solo en la columna score
+y = dataset[['score']]
+print(X.shape)
+print(y.shape)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25)
+```
+Valor esperado:
+```
+(155, 7)
+(155, 1)
+```
+
+Creamos los modelos que vamos a comparar y los asociamos a un diccionario cuya llave es el nombre del modelo y valor es la instancia del modelo.
+
+```python
+models = {"Linear Regression": LinearRegression(),
+              "Lasso": Lasso(alpha=0.2),
+              "Ridge": Ridge(alpha=1)}
+```
+
+Finalmente, para cada modelo, llamamos a nuestra función `fir_predict_score`
+
+```python
+for name, model in models.items():
+    score = fit_predict_score(model, X_train, y_train, X_test, y_test, mse)
+    print(f"{name} loss: {score}")
+```
+
+Valor esperado:
+```
+Linear Regression loss: 8.192650789890735e-08
+Lasso loss: 0.46042180411993383
+Ridge loss: 0.004280210462122615
+```
+
+Como todos nuestros modelos son regresiones lineales, podemos observar los coeficientes que utilizaron en sus regresiones lineales.
+
+```python
+for name, model in models.items():
+    print(f"Coef {name}: {model.coef_}")
+```
+
+Valor esperado:
+
+```
+Coef Linear: [[1.00013152 0.99985162 1.00000144 0.99997064 0.99967745 1.00026482 0.99997207]]
+Coef Lasso:  [1.05022766  0.         0.         0.         0.         0.         0.21717833]
+Coef Ridge:  [[1.06913383 0.96173165 0.88570284 0.89053239 0.64055658 0.766641   0.96879649]]
+```
+## 3.8 Explicación de resultados
+
+
+Los coeficientes obtenidos en las regresiones lineales son un arreglo que tiene el mismo tamaño que las columnas que utilizamos, nuestros features.
+
+```python
+X = dataset[['gdp', 'family', 'lifexp', 'freedom', 'corruption', 'generosity', 'dystopia']]
+```
+
+Los numeros mas grandes dentro del arreglo, significa que la columna en si esta teniendo mas peso en el modelo que estamos entrenando.
+
+**Lasso**
+- Los valores que Lasso haya hecho 0, nos indica que el algoritmo no te dio la atencion necesaria o no los considero importante. Analizar porque hizo eso nuestro algoritmo Lasso ya esta tarea nuestra como Data Scientist.
+
+**Ridge**
+- En Ridge ninguno de los coeficientes han sido 0, sino que fueron disminuidos, esto se hace precisamente la regresión Ridge
+
+Menor perdida es mejor, esto quiere decir que hubo menos equivocacion entre los valores esperados y los valores predichos.
+
+Esto quiere decir que en este preciso ejemplo quien obtuvo mejores resultados fue `Linear Regression Loss`
+
+## 3.9 ElasticNet: Una técnica Intermedia
+
+Hasta el momento hemos podido ver dos técnicas de regularización en las cuales añadimos un componente de penalización en el proceso donde encontramos los valores de los parámetros 𝛽 minimizando la función de error.
+
+Por ejemplo, si usamos el método de Mínimos Cuadrados Ordinarios, tenemos por definición nuestra función definida como:
+
+![ols](imgs/ols.png)
+
+Ahora bien. Si aplicamos la regularización L1 también conocida como Lasso (Least Absolute Shrinkage and Selection Operator), tenemos una ecuación de la forma:
+
+![lasso](imgs/laso.png)
+
+donde tenemos un parámetro de ajuste llamado ƛ que si tiene valores altos para el problema mandará el valor de 𝛽j a 0.
+
+Por otro lado. Si aplicamos la regularización L2 también conocida como Ridge, tendremos la siguiente ecuación:
+
+![rigde](imgs/lrigde.png)
+
+Tendremos una penalización también pero que no tiene la posibilidad de llevar los valores de los coeficientes a cero. Sin embargo esto nos permitirá realizar el intercambio de +sesgo por -varianza.
+
+Recordando que :
+
+1. Ninguna de las dos es mejor que la otra para todos los casos.
+
+2. Lasso envía algunos coeficientes a cero permitiendo así seleccionar variables significativas para el modelo.
+
+3. Lasso funciona mejor si tenemos pocos predictores que influyen sobre el modelo.
+
+4. Ridge funciona mejor si es el caso contrario y tenemos una gran cantidad.
+
+Para aplicarlos y decidir cuál es el mejor en la práctica, podemos probar usando alguna técnica como cross-validation iterativamente. o bien, podemos combinarlos…
+
+**Regularización ElasticNet**
+
+Es común encontrarnos en la literatura con un camino intermedio llamado ElasticNet. Esta técnica consiste en combinar las dos penalizaciones anteriores en una sola función. Así, nuestra ecuación de optimización quedará:
+
+![rigde](imgs/elastic.png)
+
+Donde tenemos ahora un parámetro adicional 𝛂 que tiene un rango de valores entre 0 y 1. Si 𝛂 = 0 , ElasticNet se comportará como Ridge, y si 𝛂 = 1 , se comportará como Lasso. Por lo tanto, nos brinda todo el espectro lineal de posibles combinaciones entre estos dos extremos.
+
+1. Tenemos una forma de probar ambas L1 y L2 al tiempo sin perder información.
+
+2. Supera las limitaciones individuales de ellas.
+
+3. Si hace falta experiencia, o el conocimiento matemático de fondo, puede ser la opción preferente para probar la regularización.
+
+
+**ElasticNet con Scikit-learn**
+
+
+Para implementar esta técnica añadimos primero el algoritmo ubicado en el módulo linear_model.
+
+```python
+from sklearn.linear_model import ElasticNet
+```
+
+Y luego simplemente lo inicializamos con el constructor ElasticNet() y entrenamos con la función fit().
+
+```python
+regr = ElasticNet(random_state=0)
+
+regr.fit(X, y)
+```
+
+
 # 4. Regresiones robustas
 
 # 5. Métodos de ensamble aplicados a clasificación
