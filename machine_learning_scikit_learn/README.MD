@@ -583,6 +583,17 @@ Respuesta esperada:
 
 [Código completo de está sección](1_optimización_de_features/pca.py)
 
+> HOW TO RUN
+
+Recordemos que debemos tener un entorno virtual creado y activado, para más información ir a:
+[Iniciar un proyecto con sklearn](#2-iniciar-un-proyecto-con-sklearn)
+
+```bash
+source skl_env/bin/activate
+cd 1_optmización_de_features
+python pca.py
+```
+
 # 4. Regresiones robustas
 
 # 5. Métodos de ensamble aplicados a clasificación
