@@ -1117,7 +1117,227 @@ HUBER MSE:  1.036e-07
 
 [código completo](2_regresiones_robustas/robust.py)
 
+> [Robust Regression for Machine Learning in Python - More Info - Excellent article](https://machinelearningmastery.com/robust-regression-for-machine-learning-in-python/)
+
 # 5. Métodos de ensamble aplicados a clasificación
+
+## 5.1 ¿Qué son los métodos de ensamble?
+
+Sirven cuando queremos probar diferentes estimadores y llegar a una unica conclusión a través de un consenso.
+
+1. Combinar difentes métodos de ML con diferentes configuraciones y aplicar un método para lograr un consenso.
+2. La diversidad es una muy buena opción. Probar diferentes modelos con diferentes parámetros nos permite abrir mas el abanico de soluciones a un mismo problema.
+3. Los métodos de ensable se han destacado por ganar competencias en ML.
+
+Hay dos estrategias. Bagging y Boosting
+
+### Bagging
+
+Significa **B**ootstrap **Agg**regation
+
+¿Que tal si en lugar de depender de la opinión de un solo "experto" consultamos la opinión de varios expertos en paralelo e intentamos lograr un consenso?
+> Bueno, **asi trabaja Bagging**
+
+![bagging1](https://imgur.com/ZAjuwVt.png)
+![bagging2](https://imgur.com/0wpRSAX.png)
+![bagging3](https://imgur.com/PDngmWg.png)
+
+Modelos de ensable basados en Bagging
+
+1. Random Forest
+2. Volting Classifiers/Regressors
+3. Se puede aplicar sobre cualquier familia de modelo de ML.
+
+### Boosting
+
+Boosting significa impulsar/propulsar.
+
+¿Y si probamos otro enfoque? Le pedimos a un expero su creterio sobre un problema. Medimos su posible error, y luego usando ese error calculado le pedimos a otro experto su juicio sobre el  mismo problema.
+
+> Bueno, **asi trabaja Boosting**
+
+![boosting](https://imgur.com/TRW92ol.png)
+
+Modelos de ensable basados en Bagging
+
+1. AdaBoost
+2. Gradient Tree Boosting
+3. XGBoost
+
+Resumen con imágenes:
+
+![bagg-boost1](https://imgur.com/xaC0Ptk.png)
+![bagg-boost2](https://imgur.com/kFyPySh.png)
+![bagg-boost3](https://imgur.com/HQKlOcx.png)
+
+> [What is the difference between Bagging and Boosting? by QuantDare](https://quantdare.com/what-is-the-difference-between-bagging-and-boosting/)
+
+## 5.2 Preparación de datos para implementar métodos de ensamble
+
+Utilizaremos un meta estimador que tiene Scikit Learn llamado **Bagging Classifier**. Al ser un meta estimador podemos adaptarlo a las diferentes familias de estimadores y Scikit Learn lo configurara de forma automática para que se convierta en un método de ensamble.
+
+Utilizaremos el dataset de afecciones cardiacas. Teniamos diferentes datos de pacientes, donde la meta finalmente era clasificarlos en si el paciente tenia o no una afección cardiaca.
+
+## 5.3 Implementación de Bagging
+
+En resumen se puede hacer Bagging de cualquier modelo de clasificación de SKLEARN únicamente con la siguiente línea de código:
+
+```python
+from sklearn.ensemble import BaggingClassifier
+from sklearn.linear_model import LogisticRegression
+estimator = LogisticRegression()
+BaggingClassifier(base_estimator=estimator, n_estimators=30)
+```
+
+De esta simple manera convertimos un clasificador base a un ensamble de ellos, en este caso han sido 30.
+
+Comparemos varios modelos en su versión normal y en su versión Bagging:
+
+Importamos librerias:
+
+```python
+import pandas as pd
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.ensemble import BaggingClassifier
+from sklearn.svm import LinearSVC, SVC
+from sklearn.linear_model import SGDClassifier, LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+import warnings
+
+warnings.filterwarnings("ignore")
+```
+
+Leemos nuestro dataset y lo particionamos:
+
+```python
+df_heart = pd.read_csv('../datasets/heart.csv')
+print(df_heart['target'].describe())
+print('=' * 64)
+X = df_heart.drop(['target'], axis=1)
+y = df_heart['target']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
+```
+
+Valor esperado:
+
+```
+count    1025.000000
+mean        0.513171
+std         0.500070
+min         0.000000
+25%         0.000000
+50%         1.000000
+75%         1.000000
+max         1.000000
+Name: target, dtype: float64
+=============================
+```
+
+Instanciamos nuestros modelos:
+
+```python
+classifiers = {
+        'KNeighbors': KNeighborsClassifier(),
+        'LogisticRegression': LogisticRegression(),
+        'LinearSCV': LinearSVC(),
+        'SVC': SVC(),
+        'SGDC': SGDClassifier(),
+        'DecisionTree': DecisionTreeClassifier()
+    }
+```
+Corremos modelos simples sin Bagging:
+```python
+print("Base Results:")
+for name, model in classifiers.items():
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
+    print(f"{name}'s Accuracy:", accuracy_score(y_pred, y_test))
+
+print('=' * 64)
+```
+
+Valor esperado: 
+```
+
+Base Results:
+KNeighbors's Accuracy: 0.7045454545454546
+LogisticRegression's Accuracy: 0.8051948051948052
+LinearSCV's Accuracy: 0.4772727272727273
+SVC's Accuracy: 0.6655844155844156
+SGDC's Accuracy: 0.5974025974025974
+DecisionTree's Accuracy: 0.987012987012987
+=================================================
+
+```
+
+Ahora corremos los mismos modelos pero en emsable con Bagging:
+
+```python
+print("Bagging Results:")
+for name, estimator in classifiers.items():
+    bag_class = BaggingClassifier(base_estimator=estimator, n_estimators=30)
+    bag_class.fit(X_train, y_train)
+    y_pred = bag_class.predict(X_test)
+    print(f"{name}'s Accuracy:", accuracy_score(y_pred, y_test))
+
+print('=' * 64)
+```
+
+Valor esperado:
+
+```
+Bagging Results:
+KNeighbors's Accuracy: 0.7402597402597403
+LogisticRegression's Accuracy: 0.8214285714285714
+LinearSCV's Accuracy: 0.814935064935065
+SVC's Accuracy: 0.6785714285714286
+SGDC's Accuracy: 0.6785714285714286
+DecisionTree's Accuracy: 0.987012987012987
+=================================================
+```
+
+> ## Resumen:
+> En general bagging es una gran herramienta que nos permite correr en paralelo varias veces un mismo modelo con la intención
+> de mejorar los resultados que tendría por sí mismo. Esto lo hace a través de un método de unión de resultados como lo puede ser
+> la regla del voto mayoritario. 
+> 
+> Los resultados muestran que en general todos los valores de Accuracy de los modelos mejoraron cuando se utilizo Bagging, salvo 
+> por el clasificador de DecisionTree el cuál demostro ser igual de eficiente con y sin el uso de Bagging. Sin embargo, podemos ver
+> mejoras realmente sorprendentes al fijarnos en el clasificador Linear y SGDC los cuáles aumentaron considerablemente al usar el método de Bagging.
+
+[Código completo de Bagging](3_ensambles/bagging.py)
+
+## 5.4 Implementación de Boosting
+
+Implementaremos [GradientBoostingClassifier](https://en.wikipedia.org/wiki/Gradient_boosting) un algoritmo boosting basado en arboles de decisión. Podemos encontrar mas información en la [documentación oficial de Scikit Learn](https://scikit-learn.org/stable/modules/ensemble.html#gradient-tree-boosting)
+
+Hicimos la implementación con 50 estimadores y obtuvimos lo siguiente:
+
+```python
+df_heart = pd.read_csv('../datasets/heart.csv')
+X = df_heart.drop(['target'], axis=1)
+y = df_heart['target']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
+# Con cross validation podemos optimizar la cantidad de estimadores que deberiamos utilizar
+boost = GradientBoostingClassifier(n_estimators=50)
+boost.fit(X_train, y_train)
+boost_pred = boost.predict(X_test)
+print('=' * 64)
+print('GradientBoostingClassifier accuracy :', accuracy_score(boost_pred, y_test))
+
+```
+Respuesta esperada:
+```
+GradientBoostingClassifier accuracy : 0.9155844155844156
+```
+Luego analizamos un rango de estimadores y graficamos sus resultaados para observar cual seria un numero adecuado de estimadores.
+
+![boosting](3_ensambles/boosting_results.png)
+
+
+[Código completo](3_ensambles/boosting.py)
 
 # 6. Clustering
 
