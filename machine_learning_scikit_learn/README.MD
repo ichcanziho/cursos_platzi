@@ -885,6 +885,8 @@ Menor perdida es mejor, esto quiere decir que hubo menos equivocacion entre los 
 
 Esto quiere decir que en este preciso ejemplo quien obtuvo mejores resultados fue `Linear Regression Loss`
 
+[Código completo](1_optimización_de_features/regularization.py)
+
 ## 3.9 ElasticNet: Una técnica Intermedia
 
 Hasta el momento hemos podido ver dos técnicas de regularización en las cuales añadimos un componente de penalización en el proceso donde encontramos los valores de los parámetros 𝛽 minimizando la función de error.
@@ -949,8 +951,171 @@ regr = ElasticNet(random_state=0)
 regr.fit(X, y)
 ```
 
-
 # 4. Regresiones robustas
+
+## 4.1 El problema de los valores atípicos.
+
+- Un valor atípico es cualquier medición que se encuentre por fuera del comportamiento general de una muestra de datos.
+- Pueden indicar variabilidad, errores de medición o novedades.
+
+Es fundamental identificar los valores atípicos antes de iniciar con nuestro proceso de machine learning.
+
+
+### ¿Por qué son problemáticos?
+
+- Pueden generar sesgos importantes en los modelos de ML.
+- A veces contienen información relevante sobre la naturaleza de los datos. (esto no es malo, solo indica que es posible
+que no conozcamos del todo la naturaleza de nuestro problema)
+- Detección temprana de fallos.
+
+### ¿Cómo identificarlos?
+
+#### Analíticamente, con métodos estadísticos
+
+- **Z - Score**: Mide la distancia (en desviaciones estándar) de un punto dado a la media.
+- Técnicas de clustering como **DBSCAN**. [Clusting with Scikit Learn - More Info](https://dashee87.github.io/data%20science/general/Clustering-with-Scikit-with-GIFs/)
+  - Consiste en considerar a zonas muy densas como clusters, mientras que los puntos que carecen de **‘vecinos’** no pertenecen a ningún conjunto y por lo tanto se clasifican como ruido (o **outliers**).
+  - Una ventaja de está técnica es que no se requiere que se especifique el número de clusters (como en K-means, por ejemplo), en cambio se debe especificar un número mínimo de datos que constituye un cluster y un parámetro epsilon que está relacionado con el espacio entre vecinos.
+
+  ![dbscan](https://imgur.com/cpDAOhS.gif)
+
+- Si `q< Q1-1.5IQR` ó `q > Q3+1.5IQR`. [Articulo en medium con explicación ampliada](https://towardsdatascience.com/why-1-5-in-iqr-method-of-outlier-detection-5d07fdc82097)
+
+#### Graficamente
+
+- Con Boxplot.
+  - El grafico de caja de una buena forma para detectar los valores atípicos en un set de datos, a su vez también es aconsejable (dependiendo del caso) eliminarlos para que nuestro análisis sea lo más confiable posible.
+
+    ![boxplot](https://imgur.com/oq5CiJ9.png)
+
+
+## 4.2 Regresiones Robustas en Scikit-learn
+
+¿Como podemos lidiar con valores atípicos?
+
+- Se pueden tratar desde la etapa de pre procesamiento intentando eliminarlo y transformarlo de alguna manera.
+- Hay veces que la unica menera de lidiar con ellos es cuando estamos aplicando nuestro modelo de Machine Learning.
+  - Scikit Learn nos ofrece un meta estimador que nos permite configurar diferentes estimadores para lidiar con los valores atipicos, de una manera facil de implementar. A estas técnicas se las conoce como **Regresiones Robustas**
+
+### Tipos | Más utilizadas
+
+- **RANSAC**:
+  - Selecciona una muestra aleatoria de los datos asumiendo que esa muestra se encuentra dentro de los valores inliners, con estos datos se entrena el modelo y se compara su comportamiento con respecto a los otros datos.
+  - El procedimiento anterior se repite tantas veces como se indique y al finalizar el algoritmo escoge la combinación de datos que tenga la mejor cantidad de inliners, donde los valores atípicos puedan ser discriminados de forma efectiva.
+  - [More info about RANSAC algorithm in Wikipedia](https://es.wikipedia.org/wiki/RANSAC)
+  - [sklearn.linear_model.RANSACRegressor](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.RANSACRegressor.html?highlight=ransac#sklearn.linear_model.RANSACRegressor)
+  - [Robust linear model estimation using RANSAC](https://scikit-learn.org/stable/auto_examples/linear_model/plot_ransac.html)
+
+![ransac](https://imgur.com/y2GudLP.png)
+
+![ransac2](https://imgur.com/U0gcEja.png)
+
+- **Huber Reggresor**:
+  - No elimina los valores atípicos sino que los penaliza.
+  - Realiza el entrenamiento y si el error absoluto de la perdida alcanza cierto umbral (epsilon) los datos son tratados como atípicos.
+  - El valor por defecto de epsilon es 1.35 ya que se ha demostrado que logra un 95% de eficiencia estadística.
+  - [Hube Regressor in Scikit Learn](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.HuberRegressor.html).
+  - [HuberRegressor vs Ridge on dataset with strong outliers](https://scikit-learn.org/stable/auto_examples/linear_model/plot_huber_vs_ridge.html#sphx-glr-auto-examples-linear-model-plot-huber-vs-ridge-py)
+
+![huber](https://imgur.com/yqw9c3j.png)
+
+## 4.3 Preparación de datos para la regresión robusta
+
+Tomando como referencia nuestro dataset de felicidad:
+
+```
+country,  rank, score,  high, low,  gdp,  family, lifexp, freedom,  generosity, corruption, dystopia
+Norway,      1,  7.53,  7.59,7.47, 1.61,    1.53,   0.79,    0.63,        0.36,       0.31,     2.27
+```
+Lo alteramos agregando información sucia como outliers artificiales:
+
+```
+country,  rank, score,  high, low,  gdp,  family, lifexp, freedom,  generosity, corruption, dystopia
+Norway,      1,  7.53,  7.59,7.47, 1.61,    1.53,   0.79,    0.63,        0.36,       0.31,     2.27
+A,         156,     0,     0,   0,    0,       0,      0,       0,           0,          0,        0
+B,         156,     0,     0,   0,    0,       0,      0,       0,           0,          0,        0
+```
+
+## 4.4 Implementación regresión robusta
+
+Lo que haremos es corromper los datos del dataset de felicidad agregando valores atipicos (outliers) y poder experimentar y aplicar nuestras regresiones robustas.
+
+Primero, importamos nuestras librerias.
+
+```python
+import pandas as pd
+from sklearn.linear_model import RANSACRegressor, HuberRegressor
+from sklearn.svm import SVR
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
+import matplotlib.pyplot as plt
+import warnings
+warnings.simplefilter("ignore")
+import seaborn as sns
+sns.set()
+```
+
+Función de lectura y partición de datos:
+
+```python
+def read_split_data(data, x_columns, y_column, test_size, rs):
+    dataset = pd.read_csv(data)
+    X = dataset[x_columns]
+    y = dataset[[y_column]]
+    return train_test_split(X, y, test_size=test_size, random_state=rs)
+```
+
+Llamamos a nuestra función `read_split_data`
+
+```python
+input_cols = ["gdp", "family", "lifexp", "freedom", "generosity", "corruption", "dystopia"]
+target = "score"
+X_train, X_test, y_train, y_test = read_split_data(data="../datasets/happines_corrupt.csv",
+                                                       x_columns=input_cols, y_column=target, test_size=0.3, rs=42)
+```
+
+Instancia de nuestros modelos:
+
+```python
+estimadores = {
+        'SVR': SVR(gamma='auto', C=1.0, epsilon=0.1),
+        'RANSAC': RANSACRegressor(),  # Meta estimador
+        'HUBER': HuberRegressor(epsilon=1.35,)
+    }
+```
+
+1. **SVM (Suppot Vector Machine):** Con el parámetro C podemos controlar la penalización por error en la clasificación. Si C tiene valores amplios entonces, se penaliza de forma más estricta los errores, mientras que si escogemos un C pequeño seremos menos estrictos con los errores. En otras palabras, si C es pequeño aumenta el sesgo y disminuye la varianza del modelo.
+2. **RANSAC:** Al ser un meta estimador, podemos pasarle como parámetros diferentes estimadores, para nuestro caso vamos a trabajar de una forma genenérica.
+3. **HUBER:** El valor de epsilon es 1.35. Utilizamos este valor ya que se ha demostrado que logra un 95% de eficiencia estadística.
+
+Entrenamos cada modelo y predecimos resultados:
+
+```python
+for name, estimador in estimadores.items():
+    # Entrenamos
+    estimador.fit(X_train, y_train)
+    # Predecimos
+    predictions = estimador.predict(X_test)
+    # Medimos
+    mse = mean_squared_error(y_test, predictions)
+    print(f'{name} MSE: ', round(mse, 10))
+    print('=' * 64)
+```
+Valor esperado:
+
+```
+SVR MSE:  0.0067738484
+================================================================
+RANSAC MSE:  9.41e-08
+================================================================
+HUBER MSE:  1.036e-07
+================================================================
+```
+
+![resultados](2_regresiones_robustas/regresion_results.png)
+
+
+[código completo](2_regresiones_robustas/robust.py)
 
 # 5. Métodos de ensamble aplicados a clasificación
 
