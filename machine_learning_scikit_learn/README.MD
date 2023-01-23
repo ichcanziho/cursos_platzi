@@ -790,7 +790,7 @@ def fit_predict_score(model, x_train, y_train, x_test, y_test, metric) -> float:
 Cargamos nuestro dataset:
 
 ```python
-dataset = pd.read_csv("../datasets/happines.csv")
+dataset = pd.read_csv("../datasets/happiness.csv")
 print(dataset.describe())
 ```
 Valor esperado:
@@ -1547,12 +1547,429 @@ El algoritmo nos devolvió 3 clusters, porque le pareció que esa era la cantida
 [Código Completo](4_clustering/meanshift.py)
 
 
-
 # 7. Optimización paramétrica
+
+### Resumen del curso hasta el momento:
+
+Hasta ahora hemos estudiado y hecho:
+
+-
+- Aprender a lidiar con Features antes de mandarlo al entrenamiento.
+- Aprender modelos específicos para resolver problemas de gran complejidad.
+
+Ahora nos toca la etapa final del proceso de Machine Learning, esto es:
+
+- Validación de lo que se ha hecho. Scikit Learn nos ofrece realizar este tipo de tareas de una manera casi automatizada.
+
+## 7.1 Validación de nuestro modelo usando Cross Validation
+
+- **La última palabra siempre la van a tener los datos.**
+  - Todas nuestras intuiciones no tiene nada que hacer frente a lo que digan los datos y las matemáticas que aplicamos sobre estos datos. Por eso es importante siempre tener rigurosidad a la hora de evaluar los resultados que estamos recibiendo.
+
+- **Necesitamos mentalidad de testeo.**
+  - No se trata solamente de probar un poco al principio y un poco al final, sino que tendremos que probar constantemente durante todo el proceso, para poder encontrar cuál es la solución óptima que realmente nos soluciona el problema que tenemos pendiente, todo esto:
+    - con varias formas
+    - con varios conjuntos de datos
+    - con varias configuraciones de parámetros
+    - con varias distribuciones de nuestros datos
+
+- **Todos los modelos son malos, solamente algunos son útiles.**
+  - Todos los modelos que nosotros hacemos en últimas son una sobre simplificación de lo que pasa realmente. Entonces nunca nuestros modelos van a corresponder con la realidad al cien por ciento. Si jugamos lo suficiente y si somos lo suficientemente hábiles para configurar, vamos a llegar a un punto donde el modelo que estamos trabajando va a ser útil para ciertos casos específicos dentro del mundo real.
+
+### Tipos de validación
+
+#### Hold-Out
+
+Se trata de dividir nuestros datos entrenamiento/pruebas, básicamente consiste en usar porcentajes fijos, por lo regular 70% de entrenamiento y 30% de pruebas.
+
+![hold-out](imgs/ho1.png)
+![hold-out-strategy](imgs/ho2.png)
+
+**¿Cuándo utilizar Hold-out?**
+
+- Se requiere un prototipado rápido.
+- No se tiene mucho conocimiento en ML.
+- No se cuenta con abundante poder de cómputo.
+
+#### K-Folds
+
+Usar validación cursada K-Fold, aquí vamos a plegar nuestros datos k veces, el k es un parámetro que nosotros definimos y en esos pliegues vamos a utilizar diferentes partes de nuestro dataset como entrenamiento y como test, de tal manera que intentemos cubrir todos los datos de entrenamiento y de test, al finalizar el proceso.
+
+![k-fold](imgs/kf1.png)
+![k-fold-strtegy](imgs/kf2.png)
+
+**¿Cuándo utilizar K-Folds?**
+
+- Recomendable en la mayoría de los casos.
+- Se cuenta con un equipo suficiente para desarrollar ML.
+- Se require la integración con técnicas de optimización paramétrica.
+- Se tiene más tiempo para las pruebas.
+
+#### LOOCV
+
+Validación cruzada LOOCV, Leave One Out Cross Validation. Este es el método más intensivo, ya que haremos una partición entre entrenamiento y pruebas, porque vamos a hacer entrenamiento con todos los datos, salvo 1 y vamos a repetir este proceso tantas veces hasta que todos los datos hayan sido probados.
+
+![loocv](imgs/lo.png)
+
+**¿Cuándo utilizar LOOCV?**
+
+- Se tiene gran poder de computo
+- Se cuetan con pocos datos para poder dividir por Train/Test
+- Cuando se quiere probar todos los casos posibles (para personas con TOC)
+
+## 7.2 Implementación de K-folds cross validation
+
+[Cross-validation: evaluating estimator performance](https://scikit-learn.org/stable/modules/cross_validation.html#k-fold)
+
+**[sklearn.model_selection.cross_val_score](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.cross_val_score.html#sklearn.model_selection.cross_val_score)**
+
+Se hizo una implementacion básica de Cross validation para calcular un score.
+
+- Determinamos en cuantas partes queremos dividir nuestro dataset.
+- De cada uno obtenemos una lista de scores, estos son errores medios cuadraticos de cada split.
+- Sacamos la media de esos errores
+- Obtenemos el valor final real sacando su valor absoluto.
+
+Importamos librerías
+
+```python
+import pandas as pd
+import numpy as np
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.model_selection import cross_val_score, KFold
+from sklearn.metrics import mean_squared_error
+```
+
+Cargamos datos:
+
+```python
+dataset = pd.read_csv("../datasets/happiness.csv")
+data = dataset.drop(["country", "score", "rank"], axis=1)
+target = dataset["score"]
+```
+
+Implementación básica:
+
+```python
+models = {"DecisionTreeRegressor": DecisionTreeRegressor()}
+print('---- Easy Implementation ----')
+for name, model in models.items():
+    score = cross_val_score(model, data, target, cv=3, scoring='neg_mean_squared_error')
+    print("Scores:", score)
+    print("Mean score: ", np.abs(np.mean(score)))
+print("=" * 64)
+```
+Valor esperado:
+```
+---- Easy Implementation ----
+Scores: [-0.90295869 -0.15596612 -0.96539173]
+Mean score:  0.6747721782423848
+==============================================
+```
+**[sklearn.model_selection.KFold](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.KFold.html?highlight=kfold#sklearn.model_selection.KFold)**
+
+Se hizo una implementación más sofisticada de K Fold Cross validation para calcular separar los datos en sus respectivos dataset y poder entrenar a nuestro modelo manualmente.
+
+```python
+kf = KFold(n_splits=3, shuffle=True, random_state=42)
+scores = []
+print('---- Full Implementation ----')
+for name, model in models.items():
+    print(f"I'm evaluating: {name}")
+    for n_fold, (train, test) in enumerate(kf.split(data)):
+        print(f"\t-I'm running fold {n_fold + 1}")
+        x_train, x_test, y_train, y_test = train_test_split_kf(data.values, target.values, train, test)
+        score = evaluate_model(model, mean_squared_error, x_train, x_test, y_train, y_test)
+        print("\t\t-score:", score)
+        scores.append(score)
+    print("="*64)
+    print("Scores:", scores)
+    print("Mean score: ", np.mean(scores))
+```
+
+Valor esperado:
+
+```
+---- Full Implementation ----
+I'm evaluating: DecisionTreeRegressor
+	-I'm running fold 1
+		-score: 0.00958793915130767
+	-I'm running fold 2
+		-score: 0.0057687057336853675
+	-I'm running fold 3
+		-score: 0.006056309885328279
+==========================================================================
+Scores: [0.00958793915130767, 0.0057687057336853675, 0.006056309885328279]
+Mean score:  0.007137651590107105
+```
+
+[Código completo](5_cross_validation/cross_validation.py)
+
+
+## 7.3 Optimización paramétrica
+
+Familiarizados con el concepto de Cross Validation vamos a utilizar este mismo principio de fondo para lograr automatizar un poco la selección y optimización de nuestros modelos.
+
+**Problema**: Parece que encontramos un modelo de aprendizaje que parece funcionar, pero esto puede implicar que ahora tenemos que **encontrar la optimización de cada uno de los parámetros de este modelo**, encontrar el que mejor se ajuste y el que mejor resultado nos de.
+
+1. Es facil perderse entre los conceptos de tantos parámetros. Tenemos flexibilidad para algoritmos básicos de Machine Learning, pero facil perderse.
+2. Es difícil medir la sensibilidad de los mismos manualmente.
+3. Es COSTOSO, en tiempo humano y computacionalmente.
+
+Scikit Learn nos ofrece enfoques para automatizar el proceso de optimización paramétrica. Existen 3 enfoques principales, estos son:
+
+1. Optimización manual
+2. Optimizacion por grilla de parámetros | GridSearchCV
+3. Optimizacion por búsqueda aleatorizada | RandomizedSearchCV
+
+### Optimización manual
+
+1. Escoger el modelo que queremos ajustar.
+2. Buscar en la documentación de Scikit-Learn
+3. Identificar parámetros y ajustes. Parámetros que vamos a necesitar y cuáles son los posibles ajustes que vamos a requerir para cada uno de estos parámetros.
+4. Probar combinaciones una por una iterando a través de listas.
+
+### Optimizacion por grilla de parámetros | GridSearchCV
+
+Es una forma organizada, exhaustiva y sistematica de probar todos los parametros que le digamos que tenga que probar, con los respectivos rangos de valores que le aportemos.
+
+1. Definir una o varias métricas que queremos optimizar.
+2. Identificar los posibles valores que pueden tener los parámetros.
+3. Crear un diccionario de parámetros.
+4. Usar Cross Validation.
+5. Entrenar el modelo (e ir por un café)
+
+La grilla de parámetros nos define GRUPOS DE PARÁMETROS que serán probados en todas sus combinaciones (Un grupo a la vez)
+
+Ejemplo:
+
+![svm-gridsearch-optimized](imgs/grid1.png)
+
+### Optimizacion por búsqueda aleatorizada | RandomizedSearchCV
+
+Si no tenemos tanto tiempo para una prueba tan exhaustiva o queremos combinaciones aleatorias usaremos este metodo. Es lo mismo que el caso anterior, pero busca de forma aleatoria los parametros y Scikit Learn selecciona los mejores de las combinaciones aleatorias que se hicieron.
+
+En este método, definimos escalas de valores para cada uno de los parámetros seleccionados, el sistema probará varias iteraciones (Configurables según los recursos) y mostrará la mejor combinación encontrada.
+
+Ejemplo:
+
+![svm-randomized-search-optimized](imgs/grid2.png)
+
+
+### GridSearchCV vs RandomizedSearchCV
+
+- [**GridSearchCV**](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html)
+  - Cuando se quiera realizar un estudio a fondo sobre las implicaciones de los parámetros.
+  - Se tenga tiempo.
+  - Se tenga poder de procesamiento.
+
+- [**RandomizedSearchCV**](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.RandomizedSearchCV.html)
+  - Cuando se quiera explorar posibles optimizaciones.
+  - Haya poco tiempo.
+  - Haya poco poder de procesamiento.
+
+![GridSearch-vs-RandomizedSearch](imgs/grid3.png)
+
+Alternativas [HalvingGridSearch y HalvingRandomSearch.](https://towardsdatascience.com/11-times-faster-hyperparameter-tuning-with-halvinggridsearch-232ed0160155)
+
+## 7.4 Implementación de Randomized
+
+Lo importante para la implementación en código de [**RandomizedSearchCV**](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.RandomizedSearchCV.html)
+es que cuando elijamos un modelo a optimizar, en este caso [**RandomForestRegressor**](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestRegressor.html)
+vayamos a su documentación y observemos todos sus parámetros configurables:
+
+> ### **Parameters:**
+> n_estimatorsint, default=100 
+>
+> criterion{“squared_error”, “absolute_error”, “friedman_mse”, “poisson”}, default=”squared_error” 
+>
+> max_depthint, default=None 
+>
+> min_samples_splitint or float, default=2
+> 
+> ETC
+
+Con base en estos parámetros ajustables podemos crear nuestra grilla de combinaciones:
+
+```python
+parameters = {
+        'n_estimators': range(4, 16),  # cuantos arboles compondrán mi arbol
+        'criterion': ['friedman_mse', 'squared_error', 'poisson', 'absolute_error'],
+        'max_depth': range(2, 11)
+    }
+```
+Y finalmente entrenar a nuestro metaclasificador utilizando RandomizedSerachCV
+
+```python
+reg = RandomForestRegressor()
+rand_est = RandomizedSearchCV(reg, parameters, n_iter=10, cv=3, scoring='neg_mean_absolute_error', random_state=17)
+rand_est.fit(data, target)
+```
+
+Valor esperado:
+
+```
+================================================================
+Mejores estimadores
+----------------------------------------------------------------
+RandomForestRegressor(criterion='absolute_error', max_depth=6, n_estimators=4)
+================================================================
+Mejores parámetros
+----------------------------------------------------------------
+{'n_estimators': 4, 'max_depth': 6, 'criterion': 'absolute_error'}
+================================================================
+Pruebas
+----------------------------------------------------------------
+Predict: 7.497000098
+Real:    7.537000179
+================================================================
+```
+[código completo](5_cross_validation/randomized.py)
+
+## 7.5 Bonus: Auto Machine Learning
+
+Scikit-learn nos permite semi-automatizar la optimización de nuestros modelos con GridSearchCV y RandomizedSearchCV, ¿Cuál es el límite de esta automatización? Haciendonos esta pregunta nace un nuevo concepto Automated Machine Learning.
+
+> **Automated Machine Learning (AutoML)**, es un concepto que en general pretende la completa automatización de todo el proceso de Machine Learning, desde la extracción de los datos hasta su publicación final de cara a los usuarios.
+
+Sin embargo, este ideal aún está en desarrollo en la mayoría de las etapas del proceso de Machine Learning y aún se depende bastante de la intervención humana.
+
+Podemos encontrar más información leyendo el siguiente enlace: [Qué es Automated Machine Learning: la próxima generación de inteligencia artificial](https://itmastersmag.com/noticias-analisis/que-es-automated-machine-learning-la-proxima-generacion-de-inteligencia-artificial/)
+
+Existe una implementación de este concepto utilizando Scikit Learn llamado auto-sklearn. Esto nos ayudará a llevar un paso más lejos nuestro proceso de selección y optimización de modelos de machine learning. Dado que automáticamente prueba diferentes modelos predefinidos y configuraciones de parámetros comunes hasta encontrar la que más se ajuste según los datos que le pasemos como entrada. Con esta herramienta podrás entrenar modelos tanto de clasificación como de regresión por igual.
+
+[Lista de los clasificadores disponibles](https://github.com/automl/auto-sklearn/tree/master/autosklearn/pipeline/components/classification)
+
+[Lista de los regresores disponibles](https://github.com/automl/auto-sklearn/tree/master/autosklearn/pipeline/components/regression)
+
+Se puede añadir modelos personalizados al proceso siguiendo los pasos descritos en la documentación.
+
+### auto-sklearn
+
+Esta herramienta es una librería basada en los algoritmos de scikit-learn, aunque hay que tener presente que es una librería externa y se debe instalar siempre por aparte. En todo caso al ser una librería de Python se puede combinar sin ningún problema con el resto de nuestro código desarrollado para scikit-learn, incluso permitiendo la exportación de modelos ya entrenados para su posterior uso.
+
+[Documentación de auto-sklearn](https://automl.github.io/auto-sklearn/master/index.html)
+
+La forma de hacer funcionar nuestro algoritmo no podría ser más fácil. Nos resultará bastante familiar a estas alturas después de haber trabajado tanto con sklearn.
+
+Guía de instalación para Ubuntu:
+
+### System requirements
+auto-sklearn has the following system requirements:
+
+- Linux operating system (for example Ubuntu) ([get Linux here](https://www.wikihow.com/Install-Linux))
+
+- Python (>=3.7) ([get Python here](https://www.python.org/downloads/)),
+
+- C++ compiler (with C++11 supports) ([get GCC here](https://www.tutorialspoint.com/How-to-Install-Cplusplus-Compiler-on-Linux)).
+
+To provide Python 3, a C++11 building environment and the latest SWIG version on Ubuntu, run:
+
+```bash
+sudo apt-get install build-essential swig python3-dev
+
+```
+
+Se debe crear y tener un entorno virtual activado véase: [como configurar venv](#2-iniciar-un-proyecto-con-sklearn): 
+
+Instalamos la librería de [auto-sklearn](https://automl.github.io/auto-sklearn/master/installation.html)
+
+```bash
+pip install auto-sklearn
+```
+
+
+[leer la documentación completa](https://automl.github.io/auto-sklearn/master/index.html)
+
+
+Código de Autosklearn:
+
+```python
+from autosklearn.classification AutoSklearnClassifier
+cls = AutoSklearnClassifier(time_left_for_this_task=120, n_jobs=4, seed=5, per_run_time_limit=30)
+cls.fit(X_train, y_train)
+predictions = cls.predict(X_test)
+```
+
+Ejemplo real de implementación [aquí](5_cross_validation/auto_sk.py)
+
+Valor esperado: 
+
+```
+          rank  ensemble_weight                 type      cost   duration
+model_id                                                                 
+2            1             0.04        random_forest  0.042194   1.575469
+18           3             0.02    gradient_boosting  0.042194   1.533511
+21           2             0.04          extra_trees  0.042194   1.574728
+47           4             0.02    gradient_boosting  0.050633   2.261632
+11           5             0.02    gradient_boosting  0.054852   1.173174
+33           6             0.02  k_nearest_neighbors  0.054852   1.879181
+3            7             0.04    gradient_boosting  0.059072   1.418526
+15           8             0.16                  mlp  0.063291   3.093189
+16           9             0.02          extra_trees  0.067511   2.205926
+13          10             0.02        random_forest  0.088608  10.945232
+12          11             0.02             adaboost  0.113924   1.787503
+39          12             0.02    gradient_boosting  0.113924   1.992045
+14          13             0.02                  mlp  0.147679   1.898323
+5           14             0.04             adaboost  0.164557   1.426467
+6           16             0.16   passive_aggressive  0.172996   0.828161
+31          15             0.08             adaboost  0.172996   2.799388
+37          17             0.06   passive_aggressive  0.202532   2.236975
+24          18             0.10          gaussian_nb  0.206751   0.841711
+41          19             0.10                  lda  0.316456   1.652267
+
+```
+
+Ejemplo de configuracion de clasificadores encontrados:
+
+```
+{
+    2: {   'balancing': Balancing(random_state=5),
+           'classifier': <autosklearn.pipeline.components.classification.ClassifierChoice object at 0x7fbd7f202650>,
+           'cost': 0.04219409282700426,
+           'data_preprocessor': <autosklearn.pipeline.components.data_preprocessing.DataPreprocessorChoice object at 0x7fbd7f213dc0>,
+           'ensemble_weight': 0.04,
+           'feature_preprocessor': <autosklearn.pipeline.components.feature_preprocessing.FeaturePreprocessorChoice object at 0x7fbd7f2018d0>,
+           'model_id': 2,
+           'rank': 1,
+           'sklearn_classifier': RandomForestClassifier(max_features=3, n_estimators=512, n_jobs=1,
+                       random_state=5, warm_start=True)},
+    3: {   'balancing': Balancing(random_state=5, strategy='weighting'),
+           'classifier': <autosklearn.pipeline.components.classification.ClassifierChoice object at 0x7fbd67873100>,
+           'cost': 0.05907172995780585,
+           'data_preprocessor': <autosklearn.pipeline.components.data_preprocessing.DataPreprocessorChoice object at 0x7fbd80475060>,
+           'ensemble_weight': 0.04,
+           'feature_preprocessor': <autosklearn.pipeline.components.feature_preprocessing.FeaturePreprocessorChoice object at 0x7fbd678715a0>,
+           'model_id': 3,
+           'rank': 2,
+           'sklearn_classifier': HistGradientBoostingClassifier(early_stopping=False,
+                               l2_regularization=4.821686883442146e-05,
+                               learning_rate=0.10161621495242192, max_iter=512,
+                               max_leaf_nodes=535, min_samples_leaf=10,
+                               n_iter_no_change=0, random_state=5,
+                               validation_fraction=None, warm_start=True)}
+}    
+```
+
+Resultados finales:
+```
+Accuracy score: 0.9837662337662337
+AUC: 0.9839285714285715
+```
 
 # 8. Salida a producción
 
-# Conclusiones
+## 8.1 Revisión de nuestra arquitectura de código
+
+## 8.2 Importar y exportar modelos con SKlearn
+
+## 8.3 Creación de una API con Flask para el modelo
+
+## 8.4 Cierre del curso
+
+## 8.5 Material adicional para consultar
+
+# 9. Conclusiones
 
 https://github.com/francomanca93/machine-learning-profesional-con-scikit-learn/blob/main/proyecto.md
 

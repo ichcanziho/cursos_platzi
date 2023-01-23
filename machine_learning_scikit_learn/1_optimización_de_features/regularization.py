@@ -14,7 +14,7 @@ def fit_predict_score(model, x_train, y_train, x_test, y_test, metric) -> float:
 
 
 def main():
-    dataset = pd.read_csv("../datasets/happines.csv")
+    dataset = pd.read_csv("../datasets/happiness.csv")
     print(dataset.describe())
     # Vamos a elegir los features que vamos a usar
     X = dataset[['gdp', 'family', 'lifexp', 'freedom',
