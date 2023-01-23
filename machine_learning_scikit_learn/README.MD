@@ -1341,6 +1341,213 @@ Luego analizamos un rango de estimadores y graficamos sus resultaados para obser
 
 # 6. Clustering
 
+## 6.1 Estrategias de Clustering
+
+Los [algoritmos de clustering](https://es.wikipedia.org/wiki/An%C3%A1lisis_de_grupos) son las estrategias que podemos usar para agrupar los datos de tal manera que todos los datos pertenecientes a un grupo sean lo más similares que sea posible entre sí, y lo más diferentes a los de otros grupos.
+
+Cada circulo corresponde a un elemento, sus coordenadas representan sus características, los colores son el resultado del agrupamiento, que en este caso identificó 3 grupos.
+
+![](https://imgur.com/X251zh8.png)
+
+### Casos de aplicación de clustering
+
+1. No conocemos con anterioridad las etiquetas de nuestros datos (Aprendizaje no supervisado).
+2. Queremos descubrir patrones ocultos a simple vista.
+3. Queremos identificar datos atípicos.
+
+### Casos de uso de aplicación:
+
+**Cuando sabemos cuántos grupos “k” queremos en nuestro resultado**.
+- Si es el caso, por ejemplo en una empresa de marketing y sabemos que los segmentos de clientes es bajo, medio alto, en este caso es recomendable usar k-means, o bien, spectral clustering.
+
+**Cuando queremos que el algoritmo descubra la cantidad de grupos “k” óptima según los datos que tenemos**.
+- Por otro lado si no conocemos cuantos grupos o cuantas categories tenemos y solo queremos experimenter, la solución puede ser Meanshift, clustering jerárquico o DBScan.
+
+## 6.2 Implementación de Batch K-Means
+
+Utilizaremos el dataset de [candi](datasets/candy.csv). Este nos dice las características de diferentes caramelos. Podemos conocer más el dataset en el su [readme](datasets/readme_candy_dataset.pdf).
+
+Podemos resaltar las siguientes tres features:
+
+1. sugar percent: El percentil de azúcar en el que recae dentro del mismo dataset. 
+2. price percent: El percentil de precio por unidad dentro del que se encuentra respecto
+al dataset. 
+3. win percent: Porcentaje de victorias de acuerdo a 269.000 emparejamientos al azar.
+
+Usamos la implementación [Mini Batch K-Means](https://scikit-learn.org/stable/modules/clustering.html#mini-batch-kmeans). Esta es una variante del algoritmo K-Means que usa mini batches (lotes) que reduce el tiempo de computo. La unica diferencia es que la calidad de los resultados es reducida.
+
+Documentation: [sklearn.cluster.MiniBatchKMeans](https://scikit-learn.org/stable/modules/generated/sklearn.cluster.MiniBatchKMeans.html)
+
+No implementamos el método del codo, al conocerse el datasets utilizamos la cantidad de cluster adecuada, aunque el método de selección de estos no fue el adecuado, ya que debe usarse el metodo de codo u otro.
+
+> ### Método del codo
+> La idea básica de los algoritmos de clustering es la minimización de la varianza intra-cluster y la maximización de la varianza inter-cluster. Es decir, queremos que cada observación se encuentre muy cerca a las de su mismo grupo y los grupos lo más lejos posible entre ellos.
+> El método del codo utiliza la distancia media de las observaciones a su centroide. Es decir, se fija en las distancias intra-cluster. Cuanto más grande es el número de clusters k, la varianza intra-cluster tiende a disminuir. Cuanto menor es la distancia intra-cluster mejor, ya que significa que los clústers son más compactos. El método del codo busca el valor k que satisfaga que un incremento de k, no mejore sustancialmente la distancia media intra-cluster.
+
+![elbow](imgs/elbow.png)
+
+> El método del codo es a veces ambiguo, una alternativa es el análisis de la silueta, que es más objetivo que el método del codo.
+
+Implementación en código.
+
+Importando librerías:
+
+```python
+import pandas as pd
+from sklearn.cluster import MiniBatchKMeans
+import seaborn as sns
+import matplotlib.pyplot as plt
+import warnings
+warnings.filterwarnings("ignore")
+```
+
+Abriendo el dataset de candy:
+
+```python
+dataset = pd.read_csv('../datasets/candy.csv')
+print(dataset.head())
+```
+Valor esperado:
+```
+  competitorname  chocolate  fruity  ...  sugarpercent  pricepercent  winpercent
+0      100 Grand          1       0  ...         0.732         0.860   66.971725
+1   3 Musketeers          1       0  ...         0.604         0.511   67.602936
+2       One dime          0       0  ...         0.011         0.116   32.261086
+3    One quarter          0       0  ...         0.011         0.511   46.116505
+4      Air Heads          0       1  ...         0.906         0.511   52.341465
+
+[5 rows x 13 columns]
+```
+
+Entrenamiento del modelo: En este punto debemos decidir cuántos clusters proponemos que debe encontrar
+el algoritmo de kmeans, adicionalmente al usar mini batches debemos indicar de cuál será el tamaño del batch.
+
+```python
+# al ser aprendizaje no supervisado, no separamos nuestro datasets en partes
+# eliminaremos los nombres de los caramelos, ya que eso no nos sirve para el algoritmo
+X = dataset.drop('competitorname', axis=1)
+kmeans = MiniBatchKMeans(n_clusters=4, batch_size=8)
+kmeans.fit(X)
+print('Total de centros: ', len(kmeans.cluster_centers_))
+print('=' * 64)
+col_name = "clusters"
+dataset[col_name] = kmeans.predict(X)
+print(dataset)
+```
+
+Valor esperado:
+```
+Total de centros:  4
+# Esto confirma que nuestra seleccion de 4 centros pudo ser cumplida 
+====================================================================
+                competitorname  chocolate  ...  winpercent  clusters
+0                    100 Grand          1  ...   66.971725         1
+1                 3 Musketeers          1  ...   67.602936         1
+2                     One dime          0  ...   32.261086         0
+3                  One quarter          0  ...   46.116505         3
+4                    Air Heads          0  ...   52.341465         2
+..                         ...        ...  ...         ...       ...
+80                   Twizzlers          0  ...   45.466282         3
+81                    Warheads          0  ...   39.011898         3
+82        WelchÕs Fruit Snacks          0  ...   44.375519         3
+83  WertherÕs Original Caramel          0  ...   41.904308         3
+84                    Whoppers          1  ...   49.524113         2
+```
+
+Gráfica de pares:
+
+```python
+sns.pairplot(dataset[['sugarpercent', 'pricepercent', 'winpercent', col_name]], hue=col_name, palette='colorblind')
+plt.savefig("pares.png")
+plt.show()
+plt.close()
+```
+
+Valor esperado:
+
+![kmeans](4_clustering/pares.png)
+
+
+> Se observan los 4 diferentes colores, ya que se eligieron 4 clusters. Se puede observar una clara clusterizacion cuando se compara respecto a winpercent las variables pricepercent, sugarpercent.
+
+[Código Completo](4_clustering/k_means.py)
+
+## 6.3 Implementación de Mean-Shift
+
+Puede suceder que lo que necesitemos sea simplemente dejar que el algoritmo decida cuantas categorías requiere. Esto lo podremos hacer con el algoritmo [Mean-Shift](https://scikit-learn.org/stable/modules/clustering.html#mean-shift). El algoritmo de la clustering tiene como objetivo descubrir manchas en una densidad uniforme de muestras. O sea, diferenciar y clusterizar. Documentación oficial en [sklearn.cluster.MeanShift](https://scikit-learn.org/stable/modules/generated/sklearn.cluster.MeanShift.html).
+
+### ¿Cómo funciona mean-shift?
+Piensa que cada punto tiene un peso y todo el espacio se curva con ese peso, por lo que lugares con muchos puntos tienen
+se hunden más haciendo un hueco, después lanzas un montón de bolitas en lugares aleatorios y en donde se acumulen ahi estarán los clusters.
+
+![mean](imgs/anigif.gif)
+
+El código en esencia es el mismo que el de la clase anterior pero con una biblioteca diferente:
+
+```python
+import pandas as pd
+from sklearn.cluster import MeanShift
+import seaborn as sns
+import matplotlib.pyplot as plt
+import warnings
+warnings.filterwarnings("ignore")
+```
+
+Obtención de cluster:
+
+```python
+dataset = pd.read_csv('../datasets/candy.csv')
+X = dataset.drop('competitorname', axis=1)
+meanshift = MeanShift(bandwidth=None)
+meanshift.fit(X)
+print(meanshift.labels_)
+# Aquí el algoritmo nos devolvió 3 clusters, porque le pareció que esa era la cantidad
+# correcta teniendo en cuenta como se distrubuye la densidad de nuestros datos
+print(max(meanshift.labels_))
+print('=' * 64)
+# Imprimamos la ubicación de los centros que puso sobre nuestros datos.
+# Hay que recordar que estos algoritmos crean un centro y
+# a partir de ahí se ajustan a todos los datos que lo rodean
+print(meanshift.cluster_centers_)
+cname = "meanshift"
+dataset[cname] = meanshift.labels_
+print('=' * 64)
+print(dataset.head())
+```
+Valor esperado:
+```
+  competitorname  chocolate  fruity  ...  pricepercent  winpercent  meanshift
+0      100 Grand          1       0  ...         0.860   66.971725          2
+1   3 Musketeers          1       0  ...         0.511   67.602936          2
+2       One dime          0       0  ...         0.116   32.261086          0
+3    One quarter          0       0  ...         0.511   46.116505          0
+4      Air Heads          0       1  ...         0.511   52.341465          1
+
+[5 rows x 14 columns]
+```
+
+Gráfica de pares:
+
+```python
+sns.pairplot(dataset[['sugarpercent', 'pricepercent', 'winpercent', cname]], hue=cname, palette='colorblind')
+plt.savefig("meanshift.png")
+plt.show()
+```
+
+Valor esperado:
+
+![meanshift](4_clustering/meanshift.png)
+
+El algoritmo nos devolvió 3 clusters, porque le pareció que esa era la cantidad correcta teniendo en cuenta como se distrubuye la densidad de nuestros datos. Podemos ver eso mismo en el gráfico anterior.
+
+> Se observan los 3 diferentes colores, clusters generados automáticamente por el algoritmo MeanShift. Se puede observar una clara clusterizacion cuando se compara respecto a winpercent las variables pricepercent, sugarpercent.
+
+> **NOTA**: En la [documentación (en Scalability)](https://scikit-learn.org/stable/modules/generated/sklearn.cluster.MeanShift.html) se advierte que el algoritmo tiene una complejidad algorítmica que escala a **O(T*n^2)** a medida que el número de registros aumenta.
+
+[Código Completo](4_clustering/meanshift.py)
+
+
+
 # 7. Optimización paramétrica
 
 # 8. Salida a producción
