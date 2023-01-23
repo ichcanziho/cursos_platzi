@@ -22,7 +22,8 @@ Scikit-Learn es una biblioteca de Python que ofrece un conjunto de algoritmos ef
 - [6. Clustering](#6-clustering)
 - [7. Optimización paramétrica](#7-optimización-paramétrica)
 - [8. Salida a producción](#8-salida-a-producción)
-- [Conclusiones](#conclusiones)
+- [9. Cierre del curso](#9-cierre-del-curso)
+- [10. Material Adicional](#10-material-adicional-para-consultar)
 
 # 1. Aprender los conceptos clave
 
@@ -1729,7 +1730,7 @@ Scikit Learn nos ofrece enfoques para automatizar el proceso de optimización pa
 3. Identificar parámetros y ajustes. Parámetros que vamos a necesitar y cuáles son los posibles ajustes que vamos a requerir para cada uno de estos parámetros.
 4. Probar combinaciones una por una iterando a través de listas.
 
-### Optimizacion por grilla de parámetros | GridSearchCV
+### Optimización por grilla de parámetros | GridSearchCV
 
 Es una forma organizada, exhaustiva y sistematica de probar todos los parametros que le digamos que tenga que probar, con los respectivos rangos de valores que le aportemos.
 
@@ -1961,15 +1962,349 @@ AUC: 0.9839285714285715
 
 ## 8.1 Revisión de nuestra arquitectura de código
 
-## 8.2 Importar y exportar modelos con SKlearn
+Ahora vamos a convertir los scripts que tenemos en un código que sea modular y extensible con facilidad para que nuestra arquitectura pueda salir a producción de una manera exitosa.
+
+Una estructura de carpetas que sea organizada para poder gestionar todo lo que vas a necesitar en cualquier proceso de Machine Learning.
+
+Carpetas:
+
+- [core](6_production/core): Carpeta de programación que tendrá la lógica de la creación del modelo de machine learning.
+- [data](6_production/data): Carpeta que contendrá los datos utilizados para entrenar nuestro modelo de machine learning.
+- [models](6_production/models): Carpeta que contendrá a los modelos ya entrenados listos para clasificar nuevas entradas.
+
+Archivos:
+Cada clase será un archivo que tenga su propia responsabilidad y se encargue específicamente de una tarea concreta.
+
+- [core/models.py](6_production/core/models.py) - Archivo que se encarga de seleccionar y entrenar al mejor modelo de clasificación.
+- [core/utils.py](6_production/core/utils.py) - Archivo que contendrá funciones prácticas como cargar/salvar modelos.
+- [main.py](6_production/main.py) - Archivo encargado de crear al modelo de clasificación.
+- [app.py](6_production/app.py) - Archivo que crea un servidor local para nuestra API utilizando FLASK
+- [resquest_test.py](6_production/request_test.py) - Código de ejemplo de cómo consumir nuestro endpoint.
+
+
+### Explicación de la creación del clasificador:
+
+Para variar lo visto en el curso de Platzi, este repositorio contiene un clasificador [heart disease](datasets/readme_heart_disease_dataset.pdf)
+
+El modelo contiene 13 features de entrada:
+
+1. **age**: Edad en años del paciente
+2. **sex**: 1 - Hombre, 2 - Mujer
+3. **cp**: Tipo de valor en el pecho entre 4 posibles valores. ( 1 - Angina típica, 2 - Angina
+atípica, 3 - Dolor no-anginoso, 4 - Dolor asintomático)
+4. **trestbps**: Presión sanguínea en reposo
+5. **chol**: Medición del colesterol
+6. **fbs**: Azúcar en la sangre en ayunas
+7. **restcg**: Resultados electrocardiográficos en reposo
+8. **thalach**: Frecuencia cardiaca máxima alcanzada
+9. **exang**: ¿Se presentó angina de pecho después de hacer ejercicio?
+10. **oldpeak**: Depresión ST inducida por ejercicio respecto al reposo (Más información
+aquí. https://litfl.com/st-segment-ecg-library/​)
+11. **slope**: Pendiente del pico del segmento ST
+12. **ca**: Número de vasos sanguíneos mayores coloreados por la fluoros
+13. **thal**: Talasemia: 1 - Normal, 2 - Defecto fijo, 3 - Defecto reversible
+
+Y tiene como objetivo el predecir un Heart disease
+
+> target: Presencia de patología cardiaca 1 o 0.
+
+Utilizaremos algunas de las técnicas vistas en este curso, incluyendo [Bagging](#Bagging) y [GridSearchCV](#Optimización-manual)
+
+Empecemos ubicándonos en [core/models.py](6_production/core/models.py)
+
+Librerías a utilizar:
+
+```python
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.ensemble import BaggingClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import GridSearchCV
+import warnings
+warnings.filterwarnings("ignore")
+```
+
+Crearemos una clase `Models` dónde declararemos los modelos a utilizar:
+
+```python
+class Models:
+
+    def __init__(self):
+        self.classifiers = {"DecisionTree": DecisionTreeClassifier(),
+                            "RandomForest": RandomForestClassifier(),
+                            "Bagging_KNN": BaggingClassifier(base_estimator=KNeighborsClassifier(),
+                                                             n_jobs=-1, n_estimators=30)
+                            }
+        self.classifiers_params = {
+            "DecisionTree": {"criterion": ["gini", "entropy", "log_loss"],
+                             "splitter": ["best", "random"]},
+            "RandomForest": {"n_estimators": [50, 100, 150],
+                             "criterion": ["gini", "entropy", "log_loss"],
+                             "n_jobs": [-1]},
+            "Bagging_KNN": {"base_estimator__n_neighbors": [5, 10, 15]}
+        }
+        self.cv = 3
+```
+
+Como vamos a utilizar GridSearcCV es importante que el nombre de nuestro clasificador corresponda con el nombre de
+los parámetros que utilizaremos para tunear al mismo. 
+
+> ### Nota importante:
+> 
+> Dado que KNN será utilizando dentro del algoritmo de Bagging entonces los parámetros que debe buscar gridsearch son los de KNN
+> no los de bagging, es por ello que en "self.classifiers_params", los parámetros de "Bagging_KNN" van precedidos de
+> "base_estimator__" es muy importante poner el "__" pues esto indica que el parámetro "n_neighbors" corresponde al estimador base
+> en este caso KNN
+
+Ahora hagamos un método que se encargue de obtener el mejor modelo dentro de los modelos propuestos y con los parámetros establecidos:
+
+```python
+    def get_best_model(self, x, y):
+        # Al inicio el mejor score es 0 
+        best_score = 0
+        best_model = None
+        for name, model in self.classifiers.items():
+            print(f"Im evaluating {name}")
+            grid_model = GridSearchCV(model, self.classifiers_params[name], cv=self.cv, scoring='roc_auc')
+            grid_model.fit(x, y)
+            score = grid_model.best_score_
+            # si el score actual es > el último mejor score entonces ->
+            if score > best_score:
+                # actualizo el mejor score con el score actual
+                best_score = score
+                best_model = grid_model.best_estimator_
+            print(score, grid_model.best_estimator_)
+        return best_model, best_score
+```
+
+## 8.2 Importar y exportar modelos con Sklearn
+
+Empecemos ubicándonos en [core/utils.py](6_production/core/utils.py)
+
+Importamos las librerías a utilizar:
+
+```python
+import pandas as pd
+import joblib
+```
+
+Y crearemos una clase llamada `Utils` la cuál contendrá métodos estáticos puesto que no necesitan de un objeto para ser llamados:
+
+```python
+class Utils:
+
+    @staticmethod
+    def load_from_csv(path):
+        return pd.read_csv(path)
+
+    @staticmethod
+    def load_from_mysql():
+        pass
+
+    @staticmethod
+    def feature_target(dataset, drop_cols, y):
+        X = dataset.drop(drop_cols, axis=1)
+        y = dataset[y]
+        return X.values, y.values
+
+    @staticmethod
+    def model_export(clf, score, path):
+        print('Score: ', score)
+        score = round(score, 3)
+        joblib.dump(clf, f'{path}/best_model_{score}.pkl')
+
+    @staticmethod
+    def load_model(path):
+        return joblib.load(path)
+```
+
+Los métodos `model_export` y `load_model` utilizan el tipo de formato [pickle](https://www.datacamp.com/tutorial/pickle-python-tutorial)
+para poder guardar y cargar a nuestro modelo de machine learning.
+
+Creemos nuestro mejor modelo y guardémoslo en la carpeta [models](6_production/models)
+
+Revisemos el archivo [main.py](6_production/main.py)
+
+Su función es leer el dataset [heart.csv](datasets/heart.csv) separar las columnas de entrada y salida.
+Obtener el mejor modelo de ML posible utilizando gridsearchcv y finalmente guardarlo en formato pkl dentro de la carpeta `models`
+```python
+from core.utils import Utils
+from core.models import Models
+
+
+def main():
+    model = Models()
+    df = Utils.load_from_csv("data/heart.csv")
+    data, target = Utils.feature_target(dataset=df, drop_cols=["target"], y="target")
+    best_model, score = model.get_best_model(x=data, y=target)
+    print(best_model, score)
+    Utils.model_export(clf=best_model, score=score, path="models")
+
+
+if __name__ == '__main__':
+    main()
+```
+
 
 ## 8.3 Creación de una API con Flask para el modelo
 
-## 8.4 Cierre del curso
+Para terminar crearemos un servidor para crear un API de predicción de `heart disease` utilizando nuestros 13 parámetros de entrada definidos
+por el dataset.
 
-## 8.5 Material adicional para consultar
+primero instalamos [flask](https://flask.palletsprojects.com/en/2.2.x/)
 
-# 9. Conclusiones
+```
+pip install flask
+```
 
-https://github.com/francomanca93/machine-learning-profesional-con-scikit-learn/blob/main/proyecto.md
+Y ahora en el archivo [app.py](6_production/app.py)
+
+Creamos una simple API que con el método POST regrese una clasificación del modelo de ML.
+
+```python
+import numpy as np
+from flask import Flask, app, request, jsonify
+from core.utils import Utils
+
+app = Flask(__name__)
+
+@app.route('/predict', methods=['POST'])
+def predict():
+    # Convertimos la entrada del método post en un formato entendible por el clasificador ML
+    args = dict(request.get_json())
+    values = np.array(list(args.values()))
+    values = values.reshape(1, -1)
+    # Clasificamos los valores de entrada
+    y_pred = model.predict(values)[0]
+    # Convertimos la clasificación númerica en una palabra
+    y_pred = "presente" if y_pred else "ausente"
+    # Regresamos la respuesta de nuestra API en formato JSON
+    return jsonify({"patologia_cardiaca": y_pred})
+
+
+if __name__ == "__main__":
+    # Cargamos neustro mejor modelo de ML
+    model = Utils.load_model("models/best_model_0.992.pkl")
+    app.run(port=8080, debug=True)
+```
+
+Ejecutamos nuestro código python
+
+```
+python app.py
+```
+
+Y probamos el funcionamiento de nuestra API con el código de [request_test.py](6_production/request_test.py)
+
+```python
+import requests
+
+url = "http://127.0.0.1:8080/predict"
+obj = {"age": 52, "sex": 1, "cp": 0, "trestbps": 125, "chol": 212, "fbs": 0, "restecg": 1, "thalach": 168,
+       "exang": 0, "oldpeak": 1, "slope": 2, "ca": 2, "thal": 3}
+x = requests.post(url, json=obj)
+
+print(x.text)
+```
+
+Ejecutamos el request:
+
+```
+python request_test.py
+```
+
+Finalmente, nuestro endpoint regresa:
+
+```
+{
+  "patologia_cardiaca": "ausente"
+}
+```
+
+Así podemos entonces ver un ejemplo de cómo podríamos salir a producción.
+
+Ya el JSON tendríamos que tratarlo, si estamos desarrollando una aplicación móvil o una plataforma web, podríamos trabajarlo con JavaScript o desde Android sin importar la naturaleza lo que estemos haciendo.
+
+Con esto ya tenemos las predicciones y tenemos un sistema que se conecta a nuestro modelo y nos trae los resultados de una manera extensible, modular, fácil de utilizar y que podemos convertir en la solución que estamos buscando.
+
+Así damos por finalizado la construcción de la arquitectura para salir a producción de nuestro modelo Inteligencia artificial.
+
+# 9 Cierre del curso
+
+Con esto terminamos el curso de Machine Learning con SkLearn
+
+Pasando por las diferentes etapas de:
+
+- [Optimización de features](#3-optimización-de-features) - En el curso aprendimos cómo tratar con nuestro features y como seleccionarlos para extraer la información más importante. Esto es optimización de features a través de PCA, IPCA, KPCA. También Regularización e implementación de Lasso y Ridge
+- [Regresiones robustas](#4-regresiones-robustas) - Estudiamos sobre Regresiones robustas y como implementarlas para evitar valores atípicos.
+- [Métodos de ensamble aplicados a clasificación](#5-métodos-de-ensamble-aplicados-a-clasificación) - Estudiamos métodos de ensamble aplicados a clasificación, preparamos datos e implementamos Bagging y Boosting.
+- [Clustering](#6-clustering) - Estudiamos estrategias de Clustering y como implementar Batch K-Means y Mean-Shift
+- [Optimización paramétrica](#7-optimización-paramétrica) - Se le dedicó un módulo completo a como validar nuestros modelos. Conocimos en profundidad los tipos de validación (Hold-Out, K-Folds, LOOCV). Esto se lo conoce como Cross Validation.
+- [Salida a producción](#8-salida-a-producción) - Finalmente, cómo sacarlos a producción a través de una API rest. Formamos una arquitectura de archivos y carpetas para nuestro código, importar y exportar modelos con Sklearn y creamos una API rest con Flask para el modelo.
+Luego en el mismo módulo conocimos y estudiamos sobre Optimización paramétrica o Hyperparameter Optimization. Implementamos GridSearchCV y RandomizedSearchCV
+
+# 10 Material adicional para consultar
+
+El canal de StatQuest con Josh Starmer (Inglés):
+
+https://www.youtube.com/channel/UCtYLUTtgS3k1Fg4y5tAhLbw
+
+El canal de SentDex (Inglés):
+
+https://www.youtube.com/user/sentdex
+
+Un blog especializado en Data Science (Inglés)
+
+https://towardsdatascience.com/
+
+Libro gratuito: The art of data science (Inglés)
+
+https://bookdown.org/rdpeng/artofdatascience/
+
+Canal AMP Tech: (Español)
+
+https://www.youtube.com/channel/UCG4H4Qf-ZU9Ycr_PQ4egqDQ
+
+Tensorflow Coding (Español):
+
+https://www.youtube.com/watch?v=ZMkYL942RBw&list=PLQY2H8rRoyvz3rEFpW2I3gPSru5xm8Bf7
+
+Canal de 3Blue1Brown (Subtitulado):
+
+https://www.youtube.com/watch?v=aircAruvnKk
+
+El curso de Deep Learning para PLN de Stanford: http://web.stanford.edu/class/cs224n/
+
+El canal de Daniel Shiffman “The Coding Train”
+
+(Está más orientado a temas de computación gráfica, pero las explicaciones que da de Inteligencia Artificial son maravillosas).
+
+https://www.youtube.com/user/shiffman
+
+El libro de Daniel Shiffman de introducción a la vida artificial usando P5.JS (Javascript):
+
+https://natureofcode.com/book/
+
+El canal de Andrew Ng. Deeplearning.ai
+
+https://www.youtube.com/channel/UCcIXc5mJsHVYTZR1maL5l9w
+
+Mis comunidades favoritas en facebook:
+(No olvides revisar la sección de archivos cuando sea el caso)
+
+The Data Pub:
+
+https://www.facebook.com/thedatapub/
+
+Machine Learning Colombia:
+
+https://www.facebook.com/groups/1766056600304468/files/
+
+Machine Learning en Español
+
+https://www.facebook.com/groups/machinelearninges/
+
+Sociedad Ecuatoriana de estadística (Español)
+
+https://www.facebook.com/socecuest/
 
