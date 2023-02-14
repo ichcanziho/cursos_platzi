@@ -524,40 +524,567 @@ Se ha añadido el valor: 2 - current queue: [9, 1, 2, 0, 0], rear 2
 
 ## 2.1 Algoritmos de ordenamiento
 
+#### Tipos de algoritmo de ordenamiento:
+
+Estos tipos de algoritmos dan mejores resultados de rendimiento y van a ser mas óptimos.
+
+- Insertion sort
+- Bubble sort
+- Merge sort
+- Quick sort
+
+#### ¿Qué son estructuras de algoritmos de ordenamiento?
+
+El algoritmo de ordenamiento coloca una secuencia en orden, las secuencias pueden ser de objetos, números o letras que 
+van a ser colocadas en orden. El resultado del algoritmo de ordenamiento será un array o arreglo ordenado, y este orden 
+debe ser específicamente definido, yo le puedo dar el orden, puede ir de mayor a menor, de A a Z, de Z a A, además el 
+algoritmo de ordenamiento nos da una serie de pasos a seguir para que el orden que queremos implementar se cumpla.
+
+**Ejemplos:**
+
+- **[a,b,c,d,e]** Ordenado de la A a la Z
+
+- **[1,2,3,4,5,6]** Ordenado de menor a mayor
+
+Algoritmos de ordenamiento más utilizados:
+
+#### Merge sort
+**Principio: divide y vencerás**
+
+Este algoritmo separa en partes y va resolviendo problemas pequeños e individuales y lo ordenas y por último te aseguras que allá quedado bien.
+Va separando y ordenando individualmente de mayor a menor.
+Se recomienda no usarlo en caso de tener pocos datos, pero si tienes demasiados datos, se va a volver más eficiente.
+
+![merge](imgs/merge_sort.gif)
+
+#### Insertion sort
+
+Este algoritmo compara valores y los va colocando, comparas los valores y el valor más pequeño lo coloca al lado izquierdo para poder tener un orden de menor a mayor.
+Es ul algoritmo muy fácil de implementar, su único inconveniente sería la velocidad de ejecución de la tarea.
+
+![insertion](imgs/Insertion-sort-example-300px.gif)
+
+#### Bubble sort
+
+Este algoritmo es básico, se encarga de ordenar por pares y después va a ir repitiéndose varias veces hasta que quede perfectamente ordenado.
+
+![Bubblue](imgs/Bubble-sort-example-300px.gif)
+
+#### Quick sort
+
+Este algoritmo va a dividir en problema en dos, y asi mismo va a ir ordenando cada parte del problema, hasta tenerlo resuelto completamente.
+Es un algoritmo bastante bueno y más eficiente que los demás
+
+![Quick](imgs/Quicksort-example.gif)
+
+S y N, son datos que vamos a ir viendo a menudo
+S = secuencia de objetos ordenables (Números a ordenar)
+N = es el número de elementos en S (Nuestra secuencia de elementos a ordenar)
+
+
 
 ## 2.2 Bubble sort
 
+Bubble sort, Es un algoritmo de ordenamiento rapido de implementar pero ineficiente para cantidad de datos grandes. 
+Se ordena por pares y se va repitiendo de 1 a 1 hasta que queda totalmente ordenado, es muy iterativo y muy poco 
+eficiente (por la cantidad de iteraciones)
+
+El ordenamiento de burbuja (Bubble Sort en inglés) es un sencillo algoritmo de ordenamiento. Funciona revisando cada 
+elemento de la lista que va a ser ordenada con el siguiente, intercambiándolos de posición si están en el orden 
+equivocado. Es necesario comprobar varias veces toda la lista hasta que no se necesiten más intercambios, lo cual 
+significa que la lista está ordenada. Este algoritmo obtiene su nombre de la forma con la que suben por la lista los 
+elementos durante los intercambios, como si fueran pequeñas «burbujas». También es conocido como el método del 
+intercambio directo. Dado que solo usa comparaciones para operar elementos, se lo considera un algoritmo de comparación,
+siendo uno de los más sencillos de implementar.
+
 ## 2.3 Bubble sort implementación
+
+```python
+def bubble_sort(array):
+    iteration = 1
+    n = len(array)
+    for i in range(n-1):
+        is_ordered = True
+        for j in range(n-1):
+            left, right = array[j], array[j+1]
+            if right < left:
+                array[j], array[j + 1] = array[j + 1], array[j]
+                is_ordered = False
+            iteration += 1
+            print(iteration, array)
+        if is_ordered:
+            break
+    return array
+```
 
 ## 2.4 Bubble sort: main code
 
+[código completo](2_sorting/1_bubble_sort.py)
+
+```python
+from random import sample, seed
+if __name__ == '__main__':
+    seed(1)
+    simple_array = sample(range(1, 11), 5)
+    print(simple_array)
+    simple_array = bubble_sort(simple_array)
+    print(simple_array)
+```
+
+respuesta esperada:
+
+```commandline
+original: [3, 2, 5, 1, 4]
+************************
+2 [2, 3, 5, 1, 4]
+3 [2, 3, 5, 1, 4]
+4 [2, 3, 1, 5, 4]
+5 [2, 3, 1, 4, 5]
+6 [2, 3, 1, 4, 5]
+7 [2, 1, 3, 4, 5]
+8 [2, 1, 3, 4, 5]
+9 [2, 1, 3, 4, 5]
+10 [1, 2, 3, 4, 5]
+11 [1, 2, 3, 4, 5]
+12 [1, 2, 3, 4, 5]
+13 [1, 2, 3, 4, 5]
+14 [1, 2, 3, 4, 5]
+15 [1, 2, 3, 4, 5]
+16 [1, 2, 3, 4, 5]
+17 [1, 2, 3, 4, 5]
+************************
+ordered: [1, 2, 3, 4, 5]
+
+Process finished with exit code 0
+
+```
+
 ## 2.5 Insertion sort
 
+El ordenamiento por inserción (insertion sort en inglés) es una manera muy natural de ordenar para un ser humano, y 
+puede usarse fácilmente para ordenar un mazo de cartas numeradas en forma arbitraria. Requiere O(n^2) operaciones para 
+ordenar una lista de n elementos.
+
+Inicialmente, se tiene un solo elemento, que obviamente es un conjunto ordenado. Después, cuando hay K elementos 
+ordenados de menor a mayor, se toma el elemento {k+1} y se compara con todos los elementos ya ordenados, 
+deteniéndose cuando se encuentra un elemento menor (todos los elementos mayores han sido desplazados una posición a la 
+derecha) o cuando ya no se encuentran elementos (todos los elementos fueron desplazados y este es el más pequeño). En 
+este punto se inserta el elemento {k+1} debiendo desplazarse los demás elementos.
+
+![insertion](imgs/insertion.jpg)
+
 ## 2.6 Desafío: Implementa un algoritmo de ordenamiento
+
+[Quick sort python](2_sorting/2_quick.py)
+
+Este código lo explicaré a mayor profundidad en [implementando quick sort](#45-implementando-quicksort-con-python)
+
+```python
+def quick_sort(lista):
+    izquierda = []
+    centro = []
+    derecha = []
+    if len(lista) > 1:
+        pivote = lista[0]
+        for i in lista:
+            if i < pivote:
+                izquierda.append(i)
+            elif i == pivote:
+                centro.append(i)
+            elif i > pivote:
+                derecha.append(i)
+        print("L", izquierda, "C", centro, "R", derecha)
+        return quick_sort(izquierda) + centro + quick_sort(derecha)
+    else:
+        return lista
+```
+
+```python
+from random import sample, seed
+if __name__ == '__main__':
+    seed(1)
+    simple_array = sample(range(1, 11), 9)
+    print("original:", simple_array)
+    print("*"*24)
+    simple_array = quick_sort(simple_array)
+    print("*" * 24)
+    print("ordered:", simple_array)
+```
+
+Respuesta esperada:
+
+```commandline
+original: [3, 2, 5, 1, 4, 6, 8, 10, 9]
+************************
+L [2, 1] C [3] R [5, 4, 6, 8, 10, 9]
+L [1] C [2] R []
+L [4] C [5] R [6, 8, 10, 9]
+L [] C [6] R [8, 10, 9]
+L [] C [8] R [10, 9]
+L [9] C [10] R []
+************************
+ordered: [1, 2, 3, 4, 5, 6, 8, 9, 10]
+```
 
 # 3. Recursividad
 
 ## 3.1 Recursividad
 
+La recursividad es la capacidad de una función de llamarse a sí misma.
+
+Las funciones recursivas tienen las siguientes características.
+
+- Se llaman a sí mismas.
+- Tienen de argumento un valor que cambio por cada iteración.
+- Regresan algún valor definido en cada iteración.
+- Tienen una condicional que define el fin del ciclo.
+- Manejan un stack que es el orden de las ejecuciones de las iteraciones de la función, empezando por la última a llamar.
+
+La diferencia más importante entre las operaciones recursivas y las iterativas es que los pasos de una operación 
+iterativa se realizan uno cada vez y dirigen la ejecución directamente al siguiente paso. En una operación recursiva, 
+cada paso después del paso inicial es una réplica del paso anterior.
+
+![recursividad](imgs/recursividad.gif)
+
 ## 3.2 La función factorial, calculando el factorial recursivamente
+
+![factorial](imgs/factorial.webp)
+
+El factorial de un entero positivo n, el factorial de n o n factorial se define en principio como el producto de todos 
+los números enteros positivos desde 1 (es decir, los números naturales) hasta n. Por ejemplo:
+
+5
+!
+=
+1
+×
+2
+×
+3
+×
+4
+×
+5
+= 120
+
+La operación de factorial aparece en muchas áreas de las matemáticas, particularmente en combinatoria y análisis matemático. 
+De manera fundamental el factorial de n representa el número de formas distintas de ordenar n objetos distintos 
+(elementos sin repetición). Este hecho ha sido conocido desde hace varios siglos, en el siglo xii por los estudiosos hindúes.
+
+La definición de la función factorial también se puede extender a números no naturales manteniendo sus propiedades 
+fundamentales, pero se requieren matemáticas avanzadas, particularmente del análisis matemático. El matemático francés 
+Christian Kramp (1760-1826) fue la primera persona en usar la actual notación matemática n!, en 1808.
+
+[código completo de factorial](3_recursividad/1_factorial.py)
+
+```python
+def recursive_factorial(n):
+    if n == 0:
+        return 1
+    return n * recursive_factorial(n - 1)
+
+```
 
 ## 3.3 Manejo de cadenas de caracteres
 
+En esta clase veremos un ejemplo sencillo de como podemos utilizar la recursividad para voltear el orden de una palabra:
+
+```python
+def reversed_string(string):
+    if not string:
+        return string
+    else:
+        print(string)
+        return reversed_string(string[1:]) + string[0]
+```
+
+Código de entrada
+
+```python
+if __name__ == '__main__':
+    word = "gabriel"
+    print("Original word:", word)
+    print("*"*24)
+    reverse_word = reversed_string(word)
+    print("*"*24)
+    print("Reversed word:", reverse_word)
+
+```
+
+Valor esperado:
+
+```commandline
+Original word: gabriel
+************************
+gabriel
+abriel
+briel
+riel
+iel
+el
+l
+************************
+Reversed word: leirbag
+```
+
+[código completo](3_recursividad/2_reverse_string.py)
+
 ## 3.4 Arte: Generando arte recursivo
+
+```bash
+sudo apt-get install python3-tk
+```
+
+```python
+def draw(my_turtle, length):
+    if length:
+        my_turtle.forward(length)
+        my_turtle.left(123)
+        draw(my_turtle, length - 2)
+```
+
+```python
+if __name__ == "__main__":
+    pencil = turtle.Turtle()
+    screen = turtle.Screen()
+
+    colors = (
+        '#006699',
+        '#006666',
+        '#660066',
+        '#990000',
+        '#ad3270',
+        '#e65100',
+        '#1a237e',
+        '#827717',
+        '#006064',
+        '#f57f17',
+        '#d50000',
+        '#4a148c',
+    )
+
+    for color in colors:
+        pencil.pencolor(color)
+        draw(pencil, 100)
+
+    screen.exitonclick()
+```
+
+Valor esperado:
+
+![fractal](imgs/fractal.jpg)
+
+[código completo](3_recursividad/3_turtle.py)
+
 
 # 4. Divide and conquer and dynamic programming
 
 ## 4.1 Divide and conquer 
 
+Divide y vencerás es un paradigma de algoritmos. Un programa típico de Divide y Vencerás resuelve un problema usando los 
+siguientes tres pasos:
+
+- Dividir: Rompe el problema en sub-problemas del mismo tipo.
+- Conquistar: Resuelve recursivamente los sub-problemas.
+- Combinar: Combina apropiadamente las respuestas.
+
+Un ejemplo clásico de Divide y Vencerás es `Merge Sort`. En Merge Sort, dividimos el arreglo de datos en dos mitades, 
+ordenamos las dos mitades recursivamente, y luego unir las dos mitades.
+
+![divide](imgs/divide.png)
+
 ## 4.2 ¿Qué es la programación dinámica?
 
+La programación dinámica es una técnica de diseño de algoritmos que busca mejorar la complejidad en tiempo de la solución
+de un problema que se pueda plantear desde una filosofía recursiva, empleando la reutilización de las soluciones ya 
+obtenidas con una estructura de datos auxiliar, cuyos elementos representan sub-problemas específicos (según cómo se 
+determine). Puede ser top-down (desde lo más general hacia abajo, requiere un manejo recursivo empleando “memoization”),
+o bien bottom-up (iterativo, partiendo del problema trivial hasta el problema más general)
+
+El procedimiento que se sigue para plantear la solución de programación dinámica a un problema es el siguiente:
+
+> 1. Identificar los problemas triviales del problema, a partir de los cuales se puedan generalizar luego problemas más complejos
+> 2. Verificar cuáles problemaas están apenas un nivel más alto que el trivial, e inducir una generalización recursiva (y de optimización, si es el caso) para éstos
+> 3. Determinar finalmente la respuesta de los problemas generalizados a partir de la estructura de datos que contiene las soluciones calculadas
+
+En problemas de optimización, la estructura de datos de apoyo almacena las soluciones óptimas a los problemas de decisión 
+(de los problemas triviales a los más generales); de este modo, para establecer la solución general hay que basarse en las decisiones de optimización que quedan reflejadas en dicha estructura (recorriendo desde los problemas triviales hasta el más general, tomando nota de los elementos a los que corresponden los valores óptimos, información que es proporcionada por los índices de las casillas a los que corresponden los problemas particulares)
+
+**Ejemplo 1: Factorial**
+
+Primero se identifican los problemas triviales:
+
+> factorial de 0 = 1 
+> 
+> factorial de 1 = 1
+
+Luego se induce una generalización partiendo de problemas apenas mayores a los triviales:
+
+>  factorial de 2 = 2 * factorial de 1
+>
+>  factorial de 3 = 3 * factorial de 2
+>
+>  ...
+>
+>  factorial de N = N * factorial de N-1
+
+Se define la estructura solución:
+
+>   solucion[i] = factorial de i
+
+El algoritmo queda como:
+
+
+```
+  funcion factorial(N : entero) : entero
+
+  	soluciones <- Nuevo arreglo de enteros tamaño N
+
+  	solucion[0] <- 0		// Solucion trivial
+
+  	solucion[1] <- 1 		// Solucion trivial
+
+  	para i <- 2 hasta N
+
+  		solucion[i] <- i * solucion[i-1]		// Solucion general
+
+  	retorna solucion[N] 	// Solucion final
+```
+
+**Ejemplo 2: Elemento de la secuencia de Fibonacci**
+
+Problemas triviales:
+
+>Fibonacci de 0 = 1
+>
+> Fibonacci de 1 = 1 
+
+Generalización:
+
+>  Fibonacci de 2 = Fibonacci de 1 + Fibonacci de 0
+>
+>  Fibonacci de 3 = Fibonacci de 2 + Fibonacci de 1
+>
+>  ...
+>
+>  Fibonacci de N = Fibonacci de N-1 + Fibonacci de N-2
+
+Se define la estructura solución:
+
+> solucion[i] = Fibonacci de i
+
+Algoritmo:
+
+```
+  funcion fibonacci(N : entero) : entero
+
+  	solucion <- Nuevo arreglo de tamaño N
+
+  	solucion[0] <- 1
+
+  	solucion[1] <- 1
+
+  	para i <-2 hasta N
+
+  		solucion[i] <- solucion[i-1] + solucion[i-2]
+
+  	return solucion[N]
+```
 ## 4.3 MergeSort
+
+![merge](imgs/merge.png)
+
+El método Merge Sort consiste en partir una estructura en mitades, ordenar cada mitad y luego intercalar ordenadamente ambas mitades.
+Cada mitad se ordena aplicando el mismo método.
+ 
+- Dividir en “mitades”
+  - Ordenar la primera mitad
+  - Ordenar la segunda mitad
+  - Intercalar las mitades ordenadas
+
+```
+si la estructura tiene más de 2 elementos
+  Dividir en “mitades”
+  Ordenar la primera mitad
+  Ordenar la segunda mitad
+  Intercalar las mitades ordenadas
+ sino:
+  si la cantidad de componentes es 2
+  Comparar e intercambiar
+```
+
+
+[código completo](4_divide_and_conquer/1_merge.py)
 
 ## 4.4 Desafío: Buscar el algoritmo más rápido de sort
 
+No hay clase en este capítulo.
+
 ## 4.5 Implementando QuickSort con Python
 
+Este código fue resuelto en: [desafío implementa un algoritmo de ordenamiento](#26-desafío--implementa-un-algoritmo-de-ordenamiento)
+
+Sin embargo, aquí daré una explicación más detallada del algoritmo de [Quick sort](https://es.wikipedia.org/wiki/Quicksort)
+
+El algoritmo trabaja de la siguiente forma:
+
+- Elegir un elemento del conjunto de elementos a ordenar, al que llamaremos pivote.
+- Resituar los demás elementos de la lista a cada lado del pivote, de manera que a un lado queden todos los menores que él, y al otro los mayores. Los elementos iguales al pivote pueden ser colocados tanto a su derecha como a su izquierda, dependiendo de la implementación deseada. En este momento, el pivote ocupa exactamente el lugar que le corresponderá en la lista ordenada.
+- La lista queda separada en dos sublistas, una formada por los elementos a la izquierda del pivote, y otra por los elementos a su derecha.
+- Repetir este proceso de forma recursiva para cada sublista mientras estas contengan más de un elemento. Una vez terminado este proceso todos los elementos estarán ordenados.
+
+Como se puede suponer, la eficiencia del algoritmo depende de la posición en la que termine el pivote elegido.
+
+- En el mejor caso, el pivote termina en el centro de la lista, dividiéndola en dos sublistas de igual tamaño. En este caso, el orden de complejidad del algoritmo es O(n·log n).
+- En el peor caso, el pivote termina en un extremo de la lista. El orden de complejidad del algoritmo es entonces de O(n²). El peor caso dependerá de la implementación del algoritmo, aunque habitualmente ocurre en listas que se encuentran ordenadas, o casi ordenadas. Pero principalmente depende del pivote, si por ejemplo el algoritmo implementado toma como pivote siempre el primer elemento del array, y el array que le pasamos está ordenado, siempre va a generar a su izquierda un array vacío, lo que es ineficiente.
+- En el caso promedio, el orden es O(n·log n).
+
+- No es extraño, pues, que la mayoría de optimizaciones que se aplican al algoritmo se centren en la elección del pivote.
+
+![quick](imgs/Sorting_quicksort_anim.gif)
+
+
+```python
+def quick_sort(lista):
+    # Entendamos que el algoritmo de QuickSort se basa en recursivamente ir partiendo la lista en una mitad izquierda,
+    # derecha y ordenarlas, haciendo uso de la recursividad, hasta que solo quedan 1 elemento a ser ordenado 
+    # Empezamos por definir nuestras 3 listas auxiliares, valores menores al pivote, valores iguales al pivote y valores 
+    # mayores al pivote.
+    izquierda = []
+    centro = []
+    derecha = []
+    # Si la cantidad de elementos que contiene la lista es > 1 significa que al menos hay 2 y estos pueden ser ordenados como
+    # menor, igual o mayor que el elemento pivote y aún puede llamarse a si misma la función quicksort
+    if len(lista) > 1:
+        # Nuestro valor pivote, será siempre el primer elemento que tenga la lista a ser ordenada (está NO necesariamente
+        # es la forma más eficiente de implementar el algoritmo, pero sí es la más simple de programar)
+        pivote = lista[0]
+        # Para cada elemento de la lista (solo puede haber 3 casos)
+        for i in lista:
+            # ese elemento es menor al pivote, por ende se añade a los elementos del lado izquierdo
+            if i < pivote:
+                izquierda.append(i)
+            # ese elemento es igual al pivote, por ende se añade a los elementos del centro
+            elif i == pivote:
+                centro.append(i)
+            # ese elemento es mayor al pivote, por ende se añade a los elementos del lado derecho
+            elif i > pivote:
+                derecha.append(i)
+        # De manera auxiliar vamos a imprimir los valores de las 3 listas que conforman nuestra solución
+        print("L", izquierda, "C", centro, "R", derecha)
+        # Este return SOLO terminará hasta que la condición de escape se cumpla (len(lista) < = 1) mientras no se cumpla
+        # Entonces estará ejecutándose hacia adentro de sí misma de forma recursiva.
+        return quick_sort(izquierda) + centro + quick_sort(derecha)
+    else:
+        # Finalmente, cuando la lista solo contiene un elemento, entonces por definición ya se encuentra ordenada y podemos
+        # terminar el ciclo recursivo, porque ya no podemos volver a llamar a quicksort en una lista de un solo elemento.
+        return lista
+
+```
+
 ## 4.6 Implementando QuickSort con Python: main code
+
+[código en python:](2_sorting/2_quick.py)
 
 # 5. Greedy Algorithms
 
