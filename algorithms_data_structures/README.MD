@@ -10,8 +10,7 @@
 ### 4. [Divide and conquer and dynamic programming](#4-divide-and-conquer-and-dynamic-programming)
 ### 5. [Greedy Algorithms](#5-greedy-algorithms)
 ### 6. [Grafos y árboles](#6-grafos-y-árboles)
-### 7. [¿Cómo comparar ALgoritmos?](#7-cómo-comparar-algoritmos)
-### 8. [¿Qué sigue?](#8-qué-sigue)
+### 7. [¿Cómo comparar Algoritmos?](#7-cómo-comparar-algoritmos)
 
 # 1. Introducción a los algoritmos
 
@@ -1287,7 +1286,26 @@ Para una raíz la altura y la profundidad son la misma.
 
 ## 7.1 ¿Cómo comparar algoritmos y ritmo de crecimiento?
 
-# 8. ¿Qué sigue?
+Tipos de análisis de ejecución de un programa:
 
-## 8.1 Cierre del curso y siguientes pasos
+**Análisis empírico: (poco recomendado)**
+
+- Requiere tener el código y ejecutarlo.
+- La ejecución del programa se mide en unidades de tiempo.
+- Se mide solo sobre una colección de entradas particulares.
+- Lo que se mide depende de la computadora, el sistema operativo y el compilador, es decir depende de una implementación particular.
+
+**Análisis teórico:**
+
+- Análisis predictivo de eficiencia integrado al proceso de desarrollo de un programa.
+- No depende de características de implementación.
+- Establece cotas para el tiempo de ejecución en el “peor caso”, “mejor caso” y “caso promedio”.
+
+**Notación matemática en las que expresamos el tiempo de ejecución:**
+
+- Notación Big-Oh (mas usada)
+- Notación Big-Omega
+- Notación Zeta
+
+Fuente: Introduction to Algorithms Ed. The MIT Press. (Capitulo 3 The Growth of Function)
 
