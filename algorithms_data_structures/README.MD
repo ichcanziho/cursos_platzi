@@ -1090,16 +1090,199 @@ def quick_sort(lista):
 
 ## 5.1 Qué son los greedy algorithm?
 
+ Un `greedy algorithm` es un enfoque para resolver un problema seleccionando la mejor opción disponible en ese momento. No se preocupa si el mejor resultado actual traerá el resultado óptimo general.
+
+El algoritmo nunca revierte la decisión anterior, incluso si la elección es incorrecta. Funciona en un enfoque de arriba hacia abajo.
+
+Es posible que este algoritmo no produzca el mejor resultado para todos los problemas. Es porque siempre busca la mejor opción local para producir el mejor resultado global.
+
+Sin embargo, podemos determinar si el algoritmo se puede usar con cualquier problema si el problema tiene las siguientes propiedades:
+
+**1. Greedy Choice Property**
+
+Si se puede encontrar una solución óptima al problema eligiendo la mejor opción en cada paso sin reconsiderar los pasos anteriores una vez elegidos, el problema se puede resolver utilizando un enfoque codicioso. Esta propiedad se llama propiedad de elección codiciosa.
+
+**2. Optimal Substructure**
+
+Si la solución general óptima del problema corresponde a la solución óptima de sus subproblemas, entonces el problema se puede resolver utilizando un enfoque codicioso. Esta propiedad se llama subestructura óptima.
+
+
+**Ventajas de los `greedy algorithms`**
+
+- El algoritmo es más fácil de describir.
+- Este algoritmo puede funcionar mejor que otros algoritmos (pero no en todos los casos).
+
+**Inconveniente de los `greedy algorithms`**
+
+- Como se mencionó anteriormente, el algoritmo codicioso no siempre produce la solución óptima. Esta es la principal desventaja del algoritmo.
+
+Por ejemplo, supongamos que queremos encontrar el camino más largo en el siguiente gráfico desde la raíz hasta la hoja. Usemos el algoritmo codicioso aquí.
+
+![greedya](imgs/greedy1.png)
+
+Enfoque `greedy`
+
+1. Comencemos con el nodo raíz 20. El peso del hijo derecho es 3 y el peso del hijo izquierdo es 2.
+
+2. Nuestro problema es encontrar el camino más largo. Y, la solución óptima en este momento es 3. Entonces, el algoritmo codicioso elegirá 3.
+
+3. Finalmente, el peso de un hijo único de 3 es 1. Esto nos da nuestro resultado final `20 + 3 + 1 = 24.
+
+Sin embargo, no es la solución óptima. Hay otro camino que tiene más peso `20 + 2 + 10 = 32` como se muestra en la imagen de abajo.
+
+![greedyb](imgs/greedy2.png)
+
+
+**Greedy Algorithm**
+
+1. Para empezar, el conjunto de soluciones (que contiene las respuestas) está vacío.
+2. En cada paso, se agrega un elemento al conjunto de soluciones hasta que se llega a una solución.
+3. Si el conjunto de soluciones es factible, se mantiene el elemento actual.
+4. De lo contrario, el artículo se rechaza y no se vuelve a considerar nunca más.
+
+Ahora usemos este algoritmo para resolver un problema.
+
+
+>Problema: Tienes que hacer un cambio de una cantidad utilizando el menor número de monedas posible.
+Monto: $18
+>
+>Las monedas disponibles son
+>
+>   moneda de $5
+>
+>   moneda de $2
+>
+>   moneda de $1
+>
+>No hay límite para el número de cada moneda que puede usar.
+
+**Solución**
+
+1. Cree un conjunto de soluciones vacío `solution = { }`. Las monedas disponibles son `{5, 2, 1}`.
+2. Se supone que debemos encontrar la `suma = 18`. Comencemos con la `suma = 0.
+3. Seleccione siempre la moneda con el valor más grande (es decir, 5) hasta que la suma sea > 18. (Cuando seleccionamos el valor más grande en cada paso, esperamos llegar al destino más rápido. Este concepto se denomina **greedy choice property**).
+4. En la primera iteración, `solution-set = {5}` y `sum = 5`.
+5. En la segunda iteración, `solution-set = {5, 5}` y `suma = 10`. 
+6. En la tercera iteración, `solution-set = {5, 5, 5}` y `suma = 15`.
+7. En la cuarta iteración, `solution-set = {5, 5, 5, 2}` y `suma = 17`. (No podemos seleccionar 5 aquí porque si lo hacemos, suma = 20 que es mayor que 18. Entonces, seleccionamos la segunda elemento más grande que es 2.)
+8. De manera similar, en la quinta iteración, seleccione 1. Ahora `suma = 18` y `solution-set = {5, 5, 5, 2, 1}`.
+
 ## 5.2 Ejercicio de programación greedy
 
+Implementando el código descrito más arriba:
+
+```python
+def greedy_change(coin_set, n):
+    solution = []
+    suma = 0
+    iteration = 1
+    while suma < n:
+        # La mejor opción greedy será tomar la moneda de más alta denominación
+        best_option = max(coin_set)
+        # A tu vuelto, sumale la moneda de más alta denominación
+        suma += best_option
+        # Mientras NO hayas llegado al número que te pidieron
+        if suma <= n:
+            # Añade la moneda de más alto valor al la lista de vuelto
+            solution.append(best_option)
+            print(iteration, solution)
+            iteration += 1
+        # Si te pasaste entonces:
+        else:
+            # ignora la última suma que hayas hecho
+            suma -= best_option
+            # Remueve la "best_option" del set de monedas disponibles
+            coin_set.remove(best_option)
+    return solution
+```
+
 ## 5.3 Ejercicio de programación greedy: main code
+
+[código completo](5_greedy/1_coin_change.py)
+
+ejecución
+
+```python
+if __name__ == '__main__':
+    coins = [5, 2, 1]
+    n = 23
+    print("your current budget is:", n)
+    print("the coins allowed for change are:", coins)
+    print("*"*24)
+    ans = greedy_change(coins, n)
+    print("*" * 24)
+    print("Your change is:", ans)
+```
+
+Valor esperado:
+
+```
+your current budget is: 23
+the coins allowed for change are: [5, 2, 1]
+************************
+1 [5]
+2 [5, 5]
+3 [5, 5, 5]
+4 [5, 5, 5, 5]
+5 [5, 5, 5, 5, 2]
+6 [5, 5, 5, 5, 2, 1]
+************************
+Your change is: [5, 5, 5, 5, 2, 1]
+```
 
 # 6. Grafos y árboles
 
 ## 6.1 Grafos y sus aplicaciones
 
+Teoría de grafos es un tema súper bonito en matemáticas que vale mucho la pena estudiar, ya que provee una nueva manera de modelar matemáticamente problemas del día a día. Dicho lo anterior, dejo la definición formal de un árbol y un grafo esperando que le despierte la curiosidad a algún estudiante de este curso:
+
+Formalmente, un grafo G (gráfica o graph) consiste en un conjunto finito no vacío V de objetos llamados vértices (nodos) y un conjunto E, posiblemente vacío, de subconjuntos de pares de V llamado aristas. Por lo tanto un grafo G es un par ordenado de conjuntos V y E que representan a sus vértices y aristas respectivamente y usualmente se escribe como G=(V,E). En algunos casos se incluyen funciones disjuntas que agregan más información sobre las aristas, como menciona Ricardo, como pesos, propiedades o dirección.
+
+Se dice que una gráfica G es un árbol si es acíclica y conexa. Esto implica propiedades como que toda arista de un árbol es un puente o que dan origen a teoremas como “Para todo par de vértices u, v en V(T), donde T es un árbol, existe un uv-camino en T que es único” y “En todo árbol T, si n es el número de vértices (orden), entonces existen n-1 aristas (tamaño) en T”
+
+Los grafos son mapas de set de nodos que tienen múltiples relaciones entre sí mediante enlaces (edges).
+
+Los grafos no tienen estructura de cascada como los árboles binarios, pero comparten la lógica relacional.
+
+Los grafos son definidos por G=(V,E), donde:
+
+- G = Representación del grapho
+- V = Set de nodos (vértices)
+- E = Enlaces (edges)
+
+Los grafos son el pilar o los fundamentos que se ocupan en bases de datos modernas como es el caso de la base de datos de:
+
+- Las relaciones de amistad de Facebook
+- Las recomendaciones de Amazon
+- Los seguidores de Twitter
+
 ## 6.2 Árboles
 
+Un árbol es una estructura de datos similar a una lista pero en lugar de que cada nodo apunte al siguiente de forma lineal, cada nodo apunta a un número de nodos.
+
+Un árbol es un ejemplo de una estructura de datos no lineal y es la forma de representar la naturaleza jerárquica de una estructura en forma gráfica.
+Los árboles también funcionan como un tipo de datos abstracto que cuenta con su definición y descripción de propiedades y operaciones, y se diferencia principalmente de las listas, queues (colas) y pilas porque a diferencia de estas no se utiliza para ordenar elementos de forma lineal.
+
+![tree1](imgs/tree1.jpg)
+
+- La raíz (root) de un árbol es el nodo sin nodos padres, un árbol puede tener máximo una raíz, como el nodo A en el ejemplo anterior.
+- Un enlace o “edge” se refiere al enlace entre un nodo padre a un nodo hijo.
+- Un nodo sin nodos hijos se conoce nodo “hoja” como los nodos E, J, K, H, I.
+- Los nodos hijos del mismo padre se conocen como “hermanos” (Siblings) por ejemplo, los nodos B, C, D son nodos hermanos hijos de A.
+- Por otro lado, los nodos anteriores a un nodo dado en la ruta hacia la raíz se conocen como ancestros, como G, C, y A para el nodo K en nuestra imagen de ejemplo.
+- El set de todos los nodos a cualquier profundidad dada se conoce como “nivel del árbol” en nuestro ejemplo B, C, D son del mismo nivel (nivel 1) siendo la raíz el nivel 0.
+
+![tree2](imgs/tree2.webp)
+
+- La profundidad de un nodo es la longitud del camino desde la raíz hasta el nodo, por ejemplo el nodo G tiene una profundidad de 2, A(1) - C(2) - G.
+- La altura de un nodo es el largo del camino del ndo al nodo más profundo por ejemplo en nuestra imagen la altura de B es 2, B - F(1) - J(2).
+- La altura del árbol es la altura máxima entre todos los nodos en un árbol, para un árbol la altura y la profundidad retornará el mismo valor, pero para nodos individuales podemos tener diferentes resultados, en el caso de nuestro árbol de ejemplo la altura y profundidad son de 3.
+
+Profundidad: Enlaces hacia la raíz.
+
+Altura: Enlaces hacia la hoja.
+
+Para una raíz la altura y la profundidad son la misma.
 # 7. ¿Cómo comparar Algoritmos?
 
 ## 7.1 ¿Cómo comparar algoritmos y ritmo de crecimiento?
