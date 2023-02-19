@@ -262,16 +262,526 @@ Los registros Docker (Docker Registry) son los que almacenan imágenes Docker. E
 
 ## 2.1 Primeros pasos: Hola mundo
 
+Intentemos nuestro primer hola mundo utilizando docker
+
+> docker run hello-world
+
+Es probable que nos arroje el siguiente error:
+
+```commandline
+ocker: permission denied while trying to connect to the Docker daemon socket at unix. connect: permission denied.
+See 'docker run --help'.
+```
+Para resolver el error debemos correr el comando con permisos de superusuario
+
+> sudo docker run hello-world
+
+La respuesta esperada es entonces:
+
+```
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+
+To generate this message, Docker took the following steps:
+ 1. The Docker client contacted the Docker daemon.
+ 2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+    (amd64)
+ 3. The Docker daemon created a new container from that image which runs the
+    executable that produces the output you are currently reading.
+ 4. The Docker daemon streamed that output to the Docker client, which sent it
+    to your terminal.
+
+To try something more ambitious, you can run an Ubuntu container with:
+ $ docker run -it ubuntu bash
+
+Share images, automate workflows, and more with a free Docker ID:
+ https://hub.docker.com/
+
+For more examples and ideas, visit:
+ https://docs.docker.com/get-started/
+
+```
+
 ## 2.2 Conceptos fundamentales de Docker: contenedores
+
+Docker es un software que nos ayuda en el proceso del desarrollo de software, solucionando problemas en diferentes 
+aspectos como lo son la construcción, distribución y ejecución mediante el concepto de contenedores
+
+Un contenedor la unidad logica más importante de docker que permite encapsular las dependencias de un proyecto en un 
+entorno aislado, con esto puedes conseguir resolver el problema de “But it works in my machine”, ya que te permite 
+crear una especie de máquina virtual y pasársela a tus compañeros o colocarlo en un servidor para el despliegue de 
+manera fácil.
+
+`¡Alerta!` Puedes ver a un contendor como una máquina virtual, pero eso no significa que lo sea, una máquina virtual 
+puede llegar a ser muy similar debido a sus funcionalidades como el aislamiento de procesos.
+
+Entonces… **¿Cuál es el beneficio de usar contenedores en lugar de máquinas virtuales?**
+
+El mayor beneficio es que los contenedores de Docker están en el nivel de los MB eso nos da ventajas en el consumo de 
+recursos, ya que estos corren compartiendo el host del kernel de Linux, por otro lado, las máquinas virtuales son un 
+sistema operativo(O.S) con sus propias apps que corre sobre el tuyo usando virtualización y que consume muchos recursos 
+en el nivel de los GB. Una mejor forma de ver esto es observando la arquitectura de los contendores y de las máquinas virtuales
+
+> ## Resumen el bullets
+
+- El concepto de contenedor es uno de los más importantes en el mundo de Docker
+- El contenedor será el lugar donde se correrán nuestras aplicaciones
+- Un contenedor se podría entender como una máquina virtual liviana
+  - Una máquina virtual es un programa que corre en una máquina, pero tiene un sistema operativo, propia memoria, interfaces de red, etc. Es decir, que todo lo que tiene una computadora es virtualizado.
+- Un contenedor es una agrupación de procesos que corren nativamente en la máquina, pero están aislados del resto del sistema
+- Un contenedor es una unidad lógica, no como una máquina virtual, que es una agrupación física aunque virtualizada que tiene abstracciones de memoria, CPU, etc.
+- Al ser una agrupación lógica puede correr de manera nativa en la máquina anfitriona
+  - Dicha agrupación está limitada a que cosas acceder y ver de la máquina anfitriona
+- Lo que corre adentro de un contenedor, realmente cree que está en la máquina virtual, representada por el contenedor.
+  - Es decir que no puede ver más allá de lo que permitamos
+
+> **RESUMEN:** A fines prácticos, un contenedor es como una máquina virtual, para el software que deseemos correr. 
+> Lo que caracteriza a un contenedor es que se hace sencillo definir los alcances que tendrá cada contenedor, es liviano y corre de manera nativa.
+
+Un contenedor es una instancia ejecutable de una imagen. Puede crear, iniciar, detener, mover o eliminar un contenedor 
+mediante la API o la CLI de Docker. Puede conectar un contenedor a una o más redes, adjuntarle almacenamiento o incluso 
+generar una nueva imagen basada en su estado actual.
+
+De forma predeterminada, un contenedor está relativamente bien aislado de otros contenedores y de su máquina host. 
+Puede controlar qué tan aislados están la red, el almacenamiento u otros subsistemas subyacentes de un contenedor de 
+otros contenedores o de la máquina host.
+
+Un contenedor se define por su imagen, así como por las opciones de configuración que le proporcione al crearlo o 
+iniciarlo. Cuando se quita un contenedor, cualquier cambio en su estado que no esté almacenado en el almacenamiento 
+persistente desaparece.
+[Referencia.](https://docs.docker.com/get-started/overview/)
+
+**Características de unos contendores:**
+
+- Los contenedores: son una agrupación de procesos que se encuentran dentro de una entidad lógica.
+- Los contenedores están aislados, y tienen recursos limitados.
+- Los contenedores ejecutan procesos de forma nativa en linux.
+- Los contenedores se pueden ver como máquinas virtuales livianas y aisladas.
+- Cada contenedor tiene un ID único, también tiene un nombre
+
+
+Para limitar los recursos que un contenedor usa, lo podemos hacer desde su creación (cuando corremos el comando docker run) usando flags de:
+Runtime constraints on resources
+
+```
+docker run --memory="100m" --cpus=0.5 <image>
+```
 
 ## 2.3 Comprendiendo el estado de Docker
 
+``` bash
+# Hola mundo con docker
+$ docker run hello-world
+# Ver contenedores corriendo
+$ docker ps
+# Ver todos los contenedores
+$ docker ps -a
+# Inspecionar la config un contenedor
+$ docker inspect <container_id or container_name>
+# Crear un contenedor con un nombre personalizado
+$ docker run --name <custom_name> <image_name>
+# Renombrar un contenedor
+$ docker rename --name <old_name> <new_name>
+# Eliminar un contenedor
+$ docker rm <container_id or container_name>
+# Eliminar todos los contenedores apagados
+$ docker container prune
+# Eliminar TODOS los contenedores
+$ docker rm -f $(docker ps -aq)
+```
+
+> Solucionando: permission denied while trying to connect to the Docker daemon socket at unix
+
+1. Enter the command below to create the docker group on the system.
+    ```bash
+    sudo groupadd -f docker
+    ```
+2. Type the following usermod command to add the active user to the docker group.
+    ```bash
+    sudo usermod -aG docker $USER
+    ```
+3. Apply the group changes to the current terminal session by typing:
+    ```bash
+    newgrp docker
+    ```
+4. Check if the docker group is in the list of user groups.
+    ```bash
+    groups
+    ```
+
+The group appears in the command output.
+
+```commandline
+docker adm cdrom sudo dip plugdev lpadmin lxd sambashare ichcanziho
+```
+
+1. Para observar la lista de contenedores que hemos creado:
+
+    ```bash
+    docker ps -a
+    ```
+    Valor esperado:
+    ```commandline
+    CONTAINER ID   IMAGE         COMMAND    CREATED        STATUS                    PORTS     NAMES
+    60fe77cefcf9   hello-world   "/hello"   26 hours ago   Exited (0) 26 hours ago             distracted_thompson
+    fb6bd4692734   hello-world   "/hello"   27 hours ago   Exited (0) 27 hours ago             musing_knuth
+    ```
+    Los contenedores pueden ser identificados por su `CONTAINER ID` El cual es un número de identificación generado
+    automáticamente por docker, o por `NAMES` el cual es un alias que se genera automáticamente o puede ser seleccionado por el usuario.
+
+2. Creando un contenedor con un nombre personalizado:
+
+    ```bash
+    docker run --name ejemplito hello-world
+    docker pes -a
+    ```
+
+    Respuesta esperada:
+    
+    ```bash
+    CONTAINER ID   IMAGE         COMMAND    CREATED         STATUS                     PORTS     NAMES
+    1e29458b4fa2   hello-world   "/hello"   6 seconds ago   Exited (0) 6 seconds ago             ejemplito
+    60fe77cefcf9   hello-world   "/hello"   26 hours ago    Exited (0) 26 hours ago              distracted_thompson
+    fb6bd4692734   hello-world   "/hello"   28 hours ago    Exited (0) 28 hours ago              musing_knuth
+   ```
+   
+3. Eliminando un contenedor por su nombre:
+    ```bash
+    docker run rm ejemplito
+    docker pes -a
+    ```
+
+    Respuesta esperada:
+    
+    ```bash
+    CONTAINER ID   IMAGE         COMMAND    CREATED         STATUS                     PORTS     NAMES
+    60fe77cefcf9   hello-world   "/hello"   26 hours ago    Exited (0) 26 hours ago              distracted_thompson
+    fb6bd4692734   hello-world   "/hello"   28 hours ago    Exited (0) 28 hours ago              musing_knuth
+   ```
+
+4. Eliminando todos los contenedores inactivos:
+
+    ```bash
+    docker container prune
+    docker pes -a
+    ```
+
+    Respuesta esperada:
+    
+    ```bash
+    CONTAINER ID   IMAGE         COMMAND    CREATED         STATUS                     PORTS     NAMES
+   ```
+
 ## 2.4 El modo interactivo
+
+En esta clase vamos a ver como utilizar un contenedor que tenga una función en específico, para ello primero vamos a descargar
+un contenedor de linux `ubuntu`
+
+```bash
+docker run ubuntu
+```
+
+Respuesta esperada:
+
+```bash
+Unable to find image 'ubuntu:latest' locally
+latest: Pulling from library/ubuntu
+677076032cca: Pull complete 
+Digest: sha256:9a0bdde4188b896a372804be2384015e90e3f84906b750c1a53539b585fbbe7f
+Status: Downloaded newer image for ubuntu:latest
+```
+
+Como no encontró una descarga del contenedor de ubuntu, lo primero que hizo fue buscar un contenedor de ubuntu y descargarlo.
+Sin embargo, más allá de eso no parece haber hecho nada el comando, veamos su estado con un `ps -a`
+
+```bash
+docker ps -a
+```
+
+Respuesta esperada:
+
+```bash
+CONTAINER ID   IMAGE     COMMAND       CREATED         STATUS                     PORTS     NAMES
+d48c3671d68d   ubuntu    "/bin/bash"   2 minutes ago   Exited (0) 2 minutes ago             thirsty_merkle
+```
+
+Vemos que efectivamente se creó un contenedor llamado `thirsty_merkle` sin embargo su estado es `Exited (0)`, esto se debe a que
+una vez que se creó el contenedor de ubuntu, el último comando de su creación fue un `/bin/bash` que refiere al comando de salir de
+ubuntu. Pero esto no parece muy práctico, para poder entrar a ubuntu y utilizarlo desde dentro debemos entrar al modo interactivo.
+
+Podemos acceder al modo interactivo desde que creamos el contenedor de la siguiente manera:
+
+```bash
+docker run -it --name ubuntito ubuntu
+```
+
+Respuesta esperada:
+
+```bash
+root@3d75f60733ce:/# 
+```
+
+Eureka, estamos dentro de linux ubuntu, así que vamos a comprobarlo de la siguiente manera, comprobando la versión de ubuntu
+instalada con docker. Para ello corramos el siguiente comando:
+
+```bash
+cat /etc/lsb-release
+```
+
+Respuesta esperada:
+
+```commandline
+DISTRIB_ID=Ubuntu
+DISTRIB_RELEASE=22.04
+DISTRIB_CODENAME=jammy
+DISTRIB_DESCRIPTION="Ubuntu 22.04.1 LTS"
+```
+
+
+
+Si abrimos otra terminal, podemos ver el estado actual de nuestros contenedores con nuestro comando de siempre:
+
+```bash
+docker ps -a
+```
+
+Respuesta esperada:
+
+```commandline
+CONTAINER ID   IMAGE     COMMAND       CREATED          STATUS                      PORTS     NAMES
+3d75f60733ce   ubuntu    "/bin/bash"   4 minutes ago    Up 4 minutes                          ubuntito
+d48c3671d68d   ubuntu    "/bin/bash"   10 minutes ago   Exited (0) 10 minutes ago             thirsty_merkle
+```
+
+Vemos como nuestro docker `ubuntito`se encuentra activo y corriendo. 
+
+Para salir de esta versión de ubuntu es tan simple como ejecutar: `exit`
+
+```commandline
+root@3d75f60733ce:/# exit
+```
+Y esto me regresa a mi terminal normal.
 
 ## 2.5 Ciclo de vida de un contenedor
 
+Cuando un contenedor se ejecuta lo que en realidad ejecuta es un proceso del sistema operativo. Este proceso determina si 
+el contenedor sigue vivo o no en función de si está funcionando o no. Sin embargo, en nuestro último contendor `ubuntito`
+su última acción fue `exit` entonces su main process término y por ende el proceso del contenedor termina y sale de la 
+ejecución del contenedor. 
+
+Vamos a crear un nuevo contenedor de ubuntu cuyo proceso principal NO SEA `/bin/bash` esto nos va a permitir tener un contenedor
+que siempre esté activo mientras su proceso principal se esté ejecutando.
+
+```bash
+docker run --name alwaysup -d ubuntu tail -f /dev/null 
+docker ps -a
+```
+
+Respuesta esperada:
+
+```commandline
+CONTAINER ID   IMAGE     COMMAND               CREATED          STATUS                      PORTS     NAMES
+f53ace3b3544   ubuntu    "tail -f /dev/null"   5 seconds ago    Up 5 seconds                          alwaysup
+3d75f60733ce   ubuntu    "/bin/bash"           28 minutes ago   Exited (0) 10 minutes ago             ubuntito
+```
+Lo más importante es resaltar que ahora está corriendo `tail -f /dev/null`
+
+Y entonces, ahora que está corriendo un proceso diferente, entonces cómo entro a este contenedor de ubuntu para hacer algo con él?
+Vamos a utilizar la función `exec`
+
+```commandline
+docker exec -it <container_id> <action_to_exec>
+```
+En este específico caso queremos entrar a alwaysup a su terminal bash, entonces ejecutamos el siguiente comando:
+```bash
+docker exec -it alwaysup bash
+```
+Perfecto ya estamos dónde antes, dentro de bash de ubuntu
+```commandline
+root@f53ace3b3544:/# 
+```
+
+Y si ahora salimos de ubuntu con `exit` y después vemos los procesos podemos observar lo siguiente:
+
+```bash
+exit
+docker ps -a
+```
+
+Respuesta esperada:
+
+```commandline
+CONTAINER ID   IMAGE     COMMAND               CREATED          STATUS                      PORTS     NAMES
+f53ace3b3544   ubuntu    "tail -f /dev/null"   3 minutes ago    Up 3 minutes                          alwaysup
+3d75f60733ce   ubuntu    "/bin/bash"           32 minutes ago   Exited (0) 14 minutes ago             ubuntito
+```
+
+Always up sigue corriendo como si nada. Para detener el contenedor, tenemos más de una forma, una de ellas, es detener 
+el main process que está ejecutando el contenedor alwaysup, porque nosotros ya sabemos que si se detiene este proceso entonces
+el contenedor también se detendrá, para ello encontremos el id del main process de alwaysup:
+
+```bash
+docker inspect --format '{{.State.Pid}}' alwaysup
+```
+En mi caso su id es el siguiente `17948`
+
+Desde `linux` el comando para detener el proceso sería:
+
+```bash
+kill 17948
+```
+
+Otra forma más genérica de detener el contenedor, sin pensar en el main process es:
+
+```commandline
+docker stop <container_id or container_name>
+```
+
+```bash
+docker stop alwaysup
+```
+
+Respuesta esperada:
+
+```commandline
+CONTAINER ID   IMAGE     COMMAND               CREATED          STATUS                        PORTS     NAMES
+f53ace3b3544   ubuntu    "tail -f /dev/null"   9 minutes ago    Exited (137) 41 seconds ago             alwaysup
+3d75f60733ce   ubuntu    "/bin/bash"           38 minutes ago   Exited (0) 19 minutes ago               ubuntito
+```
+
+Y a pesar de que always up actualmente se encuentra detenido, como su proceso principal es `tail -f /dev/null`
+
+Puedo volver a utilizarlo, simplemente encendiendo el contenedor con `docker start` y volviendo a ejecutar en modo interactivo
+
+```bash
+docker start alwaysup
+docker exect -it alwaysup bash
+```
+
 ## 2.6 Exponiendo contenedores
 
+
+1. Para exponer un contenedor se debe habilitar un puerto para que escuche las solicitudes que se le hacen al contenedor, nginx para este caso práctico trae un puerto habilitado que es el 80 y tiene un proceso encendido por defecto
+
+2. Luego a ese puerto del contenedor se le debe asociar a un puerto de la máquina hosts
+
+3. Adicionalmente, visualizar los logs de peticiones
+
+Crear un contenedor partiendo de una imagen de nginx Asociar un puerto de un contenedor a una máquina hosts
+Ejecución del paso 1 y 2
+
+```commandline
+$ sudo docker run -d --name <nombre contenedor> -p <puerto hosts>:<puerto contenedor>    <imagen> 
+
+	-d or --detach : 
+		Inicia un contenedor sin asociar el input/output del contenedor al terminal.
+	-name: 
+		asigna un nombre a nuestra contenedor, localmente
+
+	-p: 
+		publish,  asocia el puerto hosts con el puerto del contenedo
+```
+
+Ejemplo:
+
+```bash
+sudo docker run -d --name proxy -p 8080:80 nginx 
+```
+
+Respuesta esperada:
+
+```commandline
+Unable to find image 'nginx:latest' locally
+latest: Pulling from library/nginx
+bb263680fed1: Pull complete 
+258f176fd226: Pull complete 
+a0bc35e70773: Pull complete 
+077b9569ff86: Pull complete 
+3082a16f3b61: Pull complete 
+7e9b29976cce: Pull complete 
+Digest: sha256:6650513efd1d27c1f8a5351cbd33edf85cc7e0d9d0fcb4ffb23d8fa89b601ba8
+Status: Downloaded newer image for nginx:latest
+e4064d4de0b9f063094e6f6d764549a05e0e0911ea4cc6ad1dcb354913f09122
+```
+
+Veamos nuestros contenedores:
+
+```bash
+docker ps -a
+```
+
+Respuesta esperada:
+
+```commandline
+CONTAINER ID   IMAGE     COMMAND                  CREATED          STATUS                        PORTS                                   NAMES
+e4064d4de0b9   nginx     "/docker-entrypoint.…"   36 seconds ago   Up 35 seconds                 0.0.0.0:8080->80/tcp, :::8080->80/tcp   proxy
+f53ace3b3544   ubuntu    "tail -f /dev/null"      25 minutes ago   Exited (137) 14 minutes ago                                           alwaysup
+3d75f60733ce   ubuntu    "/bin/bash"              54 minutes ago   Exited (0) 35 minutes ago                                             ubuntito
+```
+
+Lo importante a resaltar es que ahora tenemos un contenedor llamado proxy con un puente de puertos, que usa el puerto de mi
+computadora 8080 con el puerto 80 del contenedor.
+
+y si en mi navegador voy a [localhost:8080](localhost:8080)
+
+![nginx](imgs/nginx.png)
+
+**Visualizar los logs**
+
+Ejecución del paso 3
+
+```commandline
+$ sudo  docker logs <nombre contenedor>
+$ sudo  docker logs -f  <nombre contenedor>
+$ sudo  docker logs --tail 10 -f <nombre contenedor
+
+	-f:
+		Follow, conecta input/output de nuestra termianl
+	--tail n:
+		Muestra las n lineas en la terminal
+```
+
+Ejemplo:
+
+```bash
+$ sudo docker logs proxy
+$ sudo docker logs -f proxy
+$ sudo docker logs --tail 10 -f proxy
+```
+
+Respuesta esperada:
+
+```commandline
+172.17.0.1 - - [19/Feb/2023:04:29:18 +0000] "GET / HTTP/1.1" 200 615 "-" "Mozilla/5.0 (X11; Linux x86_64) 
+AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36" "-"
+2023/02/19 04:29:18 [error] 30#30: *2 open() "/usr/share/nginx/html/favicon.ico" failed (2: No such file or directory), 
+client: 172.17.0.1, server: localhost, request: "GET /favicon.ico HTTP/1.1", host: "localhost:8080", referrer: 
+"http://localhost:8080/"
+172.17.0.1 - - [19/Feb/2023:04:29:18 +0000] "GET /favicon.ico HTTP/1.1" 404 555 "http://localhost:8080/" "Mozilla/5.0 
+(X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36" "-"
+```
+
+Si detengo el contenedor proxy
+
+```bash
+docker stop proxy
+docker ps -a
+```
+
+Respuesta esperada:
+
+```commandline
+CONTAINER ID   IMAGE     COMMAND                  CREATED             STATUS                        PORTS     NAMES
+e4064d4de0b9   nginx     "/docker-entrypoint.…"   6 minutes ago       Exited (0) 37 seconds ago               proxy
+f53ace3b3544   ubuntu    "tail -f /dev/null"      31 minutes ago      Exited (137) 20 minutes ago             alwaysup
+3d75f60733ce   ubuntu    "/bin/bash"              About an hour ago   Exited (0) 41 minutes ago               ubuntito
+```
+Puedo observar que Ya no tengo puertos disponibles y si intento ir a [localhost:8080](localhost:8080)
+ahora me da un error de que no se puede acceder a este sitio.
+
+![ngn_error](imgs/nginx_error.png)
+
+Bastaría con volver a iniciar el contenedor con `docker start proxy` para volver a utilizar nginx.
 
 # 3. Datos en Docker
 
