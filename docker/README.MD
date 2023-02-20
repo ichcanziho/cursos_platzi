@@ -1278,9 +1278,258 @@ Ahora hagamos un ejercicio rápido de transferencia de archivos entre máquina l
 
 ## 4.1 Conceptos fundamentales de Docker: Imágenes
 
+**¿Qué son las imágenes?**
+
+Son moldes o plantillas que tienen empaquetado todo lo necesario para funcionar. Docker usa estás misma para construir contenedores.
+
+**¿Para qué sirven las imágenes en la construcción de software?**
+
+Las imágenes sirven para crear contenedores y también es como docker intenta solucionar el problema de construcción de y distribución de software.
+
+```bash
+docker image ls
+```
+
+Listar imágenes locales de docker. Esta instrucción de terminal mostrará las siguientes columnas
+
+- `TAG:` Es la version de la imagen, cuando no especificamos que versión de descargar docker asume que es la última
+- `CREATE AT:` tiempo de creación
+- `SIZE:` Tamaño de la imagen
+- `IMAGE ID:` Este es el identificador de la imagen. Si descargamos dos imágenes que son iguales al realizar un pull, docker lo que hará es tener un puntero lógico a la misma imagen ya descargada y no descargará la otra imagen. Existe la posibilidad que tenga TAG diferentes, pero serán la misma imagen. Esto último se puede comprobar viendo el IMAGE ID, debería ser los mismos.
+
+Respuesta esperada:
+
+```commandline
+REPOSITORY    TAG       IMAGE ID       CREATED         SIZE
+nginx         latest    3f8a00f137a0   11 days ago     142MB
+mongo         latest    a440572ac3c1   2 weeks ago     639MB
+ubuntu        latest    58db3edaf2be   3 weeks ago     77.8MB
+hello-world   latest    feb5d9fea6a5   17 months ago   13.3kB
+```
+
+Para descargar una imagen de docker podemos ir a [docker hub](https://hub.docker.com/) a revisar que imágenes están disponibles.
+Vayamos a la imagen de [ubuntu](https://hub.docker.com/_/ubuntu) a la fecha 20 de febrero de 2023, luce de la siguiente manera:
+
+![dockerhub](imgs/docker_hub.png)
+
+Podemos observar en la parte superior derecha como el comando para descargar la imagen docker de ubuntu es: `docker pull ubuntu`
+
+Por defecto docker asume que quieres descargar la versión más reciente de una imagen, pero si quisieras descargar una versión diferente
+tendrías que especificarlo de la siguiente manera: `docker pull <imageName>:<versionImage>`.
+
+```bash
+docker pull ubuntu:20.04
+```
+
+Si no colocamos un parámetro después de pull entenderá que deberá realizar la descarga de docker hub. EL parámetro extra después de pull es para indicarle el repositorio
+
+> ## Extra:
+> Como analogía a la programación orientada a objetos. Una imagen de docker es una plantilla con la que podemos instanciar varios contenedores.
+> Esto es muy similar a la forma lógica en la cual nosotros en programación orientada a objetos creamos una clase, para posteriormente
+> crear objetos a partir de la misma. De esta manera tendríamos el siguiente simil lógico
+>
+>   > Imagen - Clase
+>   >
+>   > Contenedor - Objeto
+>
+
+
+
 ## 4.2 Construyendo una imagen propia
 
+Todas las imágenes son un conjunto de capas o layers. 
+
+Docker es sumamente eficiente con la administración de recursos de memoria tanto de forma local como de forma remota al compartir nuestras imágenes en docker hub.
+Su sistema basado en capas recuerda mucho a la manera en la que git administra los cambios entre versiones. De modo que cuando nosotros creamos o compartimos
+una nueva imagen de docker basada en otra imagen, docker NO genera una copia con todos los archivos de la imagen original más los nuevos archivos
+que tu nueva imagen haya generado. 
+
+Para hacer más eficiente el uso de memoria, docker solamente publicará los archivos que difieren de la versión base de nuestra nueva imagen, 
+esto le permite reutilizar las capas que ya existían en otro repositorio y simplemente añadir las nuevas capas que nosotros hemos montado.
+
+![capas1](imgs/capas1.png)
+
+Cuando nosotros creamos una versión ligeramente diferente de la imagen de ubuntu con por ejemplo un archivo de texto extra que la
+versión original de ubuntu no tenía, realmente lo único que estamos haciendo es añadiendo un par de capas extras a la pre-configuración
+de la imagen original de ubuntu.
+
+![capa2](imgs/capa2.png)
+
+Adicionalmente, cuando creamos una nueva imagen que queremos compartir con la comunidad a través de docker hub necesitamos crear un
+nuevo tag a dicha imagen para decir que el repositorio de esta nueva imagen estará alojado por mi usuario y no por el usuario base de la 
+imagen. Imagina el problema que sería que cualquier usuario pudiera estar alterando las imágenes oficiales de ubuntu por cualquier mínimo cambio.
+
+> ## Advertencia: 
+> Por defecto los repositorios en Docker Hub son públicos, esto significa que cualquier usuario puede disponer
+> de las imágenes que compartamos, esto es algo que queremos evitar cuando trabajamos con proyectos privados como código 
+> realizado en un trabajo. Para ello Docker ofrece alternativas de pago que permiten a los repositorios ser privados y accesibles
+> solo por una determinada cantidad de usuarios.
+
+### Ejemplo práctico:
+
+Construyamos nuestra primer imagen Docker a partir de la imagen base de [ubuntu](https://hub.docker.com/_/ubuntu).
+
+1. Creamos una nueva carpeta que contendrá el código que instanciará a una nueva versión de ubuntu.
+   ```bash
+   mkdir new_ubuntu_img
+   cd new_ubuntu_img/
+   ```
+2. Creamos el archivo `Dockerfile`:
+   ```bash
+   touch Dockerfile
+   ```
+3. Aquí empieza la magia, con nuestro edito de texto/código favorito accedemos al archivo `Dockerfile` y escribimos lo siguiente:
+   ```doctest
+   # Como base de la creación de mi nueva imagen tomo la versión más reciente de ubuntu
+   FROM ubuntu:latest
+   # En mi versión modificada de ubuntu habrá un archivo llamado `hola-mundo.txt` vacío
+   RUN touch /usr/src/hola-mundo.txt
+   # Aquí terminan las capas de modificación de la imagen original de ubuntu
+   ```
+4. Crearemos una imagen a partir de este Dockerfile, para ello es importante en este instante estar en la misma carpeta que el archivo dockerfile.
+   ```bash
+   docker build -t ubuntu:gabriel .
+   # en este momento estoy versionando la imagen ubuntu con la etiqueta `gabriel`
+   # el `.`final indica que se estará tomando como contexto de la imagen la ruta actual
+   ```
+   Respuesta esperada:
+   ```commandline
+   => [internal] load .dockerignore                                                                                                      0.1s
+    => => transferring context: 2B                                                                                                        0.0s
+    => [internal] load build definition from Dockerfile                                                                                   0.1s
+    => => transferring dockerfile: 343B                                                                                                   0.0s
+    => [internal] load metadata for docker.io/library/ubuntu:latest                                                                       0.0s
+    => [1/2] FROM docker.io/library/ubuntu:latest                                                                                         0.0s
+    => [2/2] RUN touch /usr/src/hola-mundo.txt                                                                                            0.3s
+    => exporting to image                                                                                                                 0.1s
+    => => exporting layers                                                                                                                0.0s
+    => => writing image sha256:07b38109d489de9dbcf04e5ebb87f939a7d8770ec3fca2dc8cc75a69631c8df3                                           0.0s
+    => => naming to docker.io/library/ubuntu:gabriel 
+   ```
+5. Poniendo a prueba nuestra nueva imagen, ejecutándola.
+   ```bash
+   docker run -it ubuntu:gabriel
+   ll usr/src/
+   ```
+   Respuesta esperada:
+   ```commandline
+   total 12
+   drwxr-xr-x 1 root root 4096 Feb 20 18:42 ./
+   drwxr-xr-x 1 root root 4096 Jan 26 02:03 ../
+   -rw-r--r-- 1 root root    0 Feb 20 18:42 hola-mundo.txt
+   ```
+6. Compartiendo la imagen en [DockerHub](https://hub.docker.com/)
+   ```bash
+   docker login
+   ```
+   Nos pedirá nuestro nombre de usuario y contraseña. Ahora debemos cambiar el tag de nuestra imagen, puesto que no podemos usar
+   el de `ubuntu` directamente
+   
+   ```bash
+   docker tag ubuntu:gabriel ichcanziho/ubuntu:gabriel
+   # dónde ichcanziho debe ser remplazado por tu nombre de usuario
+   ```
+   
+   Observemos nuestros cambios:
+   ```bash
+   docker image ls
+   ```
+   Respuesta esperada:
+   
+   ```commandline
+   REPOSITORY          TAG       IMAGE ID       CREATED          SIZE
+   ichcanziho/ubuntu   gabriel   07b38109d489   11 minutes ago   77.8MB
+   ubuntu              gabriel   07b38109d489   11 minutes ago   77.8MB
+   nginx               latest    3f8a00f137a0   11 days ago      142MB
+   mongo               latest    a440572ac3c1   2 weeks ago      639MB
+   ubuntu              latest    58db3edaf2be   3 weeks ago      77.8MB
+   hello-world         latest    feb5d9fea6a5   17 months ago    13.3kB
+   ```
+   
+   Nota: Obsevamos que los repositorios `ichanziho/ubuntu` y `ubuntu`cuyo tag es `gabriel` tienen el mismo `IMAGE ID` esto hace 
+   referencia a que en realidad son la misma imagen, simplemente tienen un nombre de repositorio diferente, esto significa que el
+   `SIZE` de `77.8MB`es compartido, es exactamente el mismo.
+   
+   Finalmente, vamos a hacer push de nuestra imagen a nuestro repositorio en DockerHub:
+   
+   ```bash
+   docker push ichcanziho/ubuntu:gabriel
+   ```
+   
+   Respuesta esperada:
+   ```commandline
+   The push refers to repository [docker.io/ichcanziho/ubuntu]
+   8106596fe5dc: Pushed 
+   c5ff2d88f679: Mounted from library/mongo 
+   gabriel: digest: sha256:a8262a1265e5749bb74689e332a0781ae532995f57d5fd9b68058df5fbc7612f size: 736
+   ```
+   
+   Para concluir, podemos ir a nuestro DockerHub y observar nuestro nuevo repositorio:
+   
+   ![dockerich](imgs/dockerHubich.png)
+
+   Ahora cualquier persona puede hacer pull de mi imagen y usarla libremente:
+
+   ![dockerich2](imgs/dockerich2.png)
+
+   ```bash
+   docker pull ichcanziho:ubuntu
+   ```
+
 ## 4.3 El sistema de capas
+
+Las imágenes son un conjunto de capas, y a partir del Dockerfile se puede saber como está construido una imagen. Existen distintas maneras de ver las capas que conforman una imagen:
+
+1. Si la imagen es pública se puede visitar Dockerhub y buscar una imagen para ver su Dockerfile. Una vez encontrar la imagen buscamos en los tag y haciendo clic en los tag se mostrará el docker file para construir dicha imagen.
+
+2. Se puede hacer a través de la línea, esta opción no es muy cómoda. Es importante destaca que los cambios se presenta por filas y las filas más inferiores son los cambios más viejos y las que están más arriba son los cambios más recientes. el comando es:
+
+   $ sudo docker history <nombre imagen: nombre tag>
+
+   **Ejemplo:**
+
+   ```
+   sudo docker history ubuntu:gabriel
+   ```
+   Respuesta esperada:
+   ```commandline
+   IMAGE          CREATED          CREATED BY                                      SIZE      COMMENT
+   07b38109d489   51 minutes ago   RUN /bin/sh -c touch /usr/src/hola-mundo.txt…   0B        buildkit.dockerfile.v0
+   <missing>      3 weeks ago      /bin/sh -c #(nop)  CMD ["/bin/bash"]            0B        
+   <missing>      3 weeks ago      /bin/sh -c #(nop) ADD file:18e71f049606f6339…   77.8MB    
+   <missing>      3 weeks ago      /bin/sh -c #(nop)  LABEL org.opencontainers.…   0B        
+   <missing>      3 weeks ago      /bin/sh -c #(nop)  LABEL org.opencontainers.…   0B        
+   <missing>      3 weeks ago      /bin/sh -c #(nop)  ARG LAUNCHPAD_BUILD_ARCH     0B        
+   <missing>      3 weeks ago      /bin/sh -c #(nop)  ARG RELEASE                  0B 
+   ```
+
+3. Otra opción es una herramienta de terminal creada por un usuario llamada dive https://github.com/wagoodman/dive, al ejecutar esta herramienta se puede visualizar que del lado izquierdo las capas que tiene la imagen y del lado derecho se visualiza el detalle de cambios que genera cada capa. el comando es el siguiente:
+
+   Instalación en linux:
+   ```bash
+   wget https://github.com/wagoodman/dive/releases/download/v0.9.2/dive_0.9.2_linux_amd64.deb
+   sudo apt install ./dive_0.9.2_linux_amd64.deb
+   ```
+
+   $ sudo dive < nombre de imagen:nombre tag >
+
+   **Ejemplo:**
+   ```
+   sudo dive ubuntu:gabriel
+   ```
+   
+   ![dive_ans](imgs/dive_ans.png)   
+
+4. Los cambios que se muestran en la terminal son de la siguiente forma, los más antiguos abajo y los más recientes arriba
+
+
+**En la construcción de una imagen Es importante tomar en cuenta lo siguiente:**
+
+Se puede optar por instalar paquetes o crear archivos en una capa y luego desinstalar los paquetes o eliminar los archivos en otra capa. Esto es poco óptimo porque las capas son inmutables y en este caso estaríamos desperdiciando espacios. El motivo de que las capas son inmutables es para que al momento de crear una imagen docker no agrega capas ya creadas.
+
+Una estrategia para evitar desperdiciar espacio es que en la misma capa se cree o instalen los paquetes y luego de terminar 
+la operación que esto realizan se desinstale o eliminen. Otra estrategia de optimizar es que una vez generada la imagen 
+todas las operaciones se hagan desde un contenedor.
 
 # 5. Docker como herramienta de desarrollo
 
