@@ -787,9 +787,492 @@ Bastaría con volver a iniciar el contenedor con `docker start proxy` para volve
 
 ## 3.1 Bind mounts
 
+Muchas veces necesitamos acceder a datos en nuestros contenedores que se encuentran por fuera de ellos mismos. Sin embargo, 
+directamente los contenedores de docker no saben que se encuentran contenidos, y para ellos todo el universo que existe
+solo se encuentra dentro de lo que alcanzan a ver (el propio contenedor). En esta clase veremos una forma en la cual podemos
+compartir información y datos que existen fuera del contenedor al contenedor. 
+
+Para empezar con el ejemplo creemos un contenedor que contenga una base de datos de Mongo:
+
+```bash
+docker run -d --name mongo_db mongo
+```
+
+Respuesta esperada:
+
+```commandline
+Unable to find image 'mongo:latest' locally
+latest: Pulling from library/mongo
+10ac4908093d: Pull complete 
+685504455d09: Pull complete 
+ebd36404f329: Pull complete 
+3abd9b25affb: Pull complete 
+2d7fde532eae: Pull complete 
+24fc70e4c7d7: Pull complete 
+ffc2353072f7: Pull complete 
+560de8e3a6c7: Pull complete 
+0748cd1d792c: Pull complete 
+Digest: sha256:2374c2525c598566cc4e62145ba65aecfe1bd3bf090cccce1ca44f3e2b60f861
+Status: Downloaded newer image for mongo:latest
+798c3fe2cb6f6578ffcb0626984a6eeb8325952ee91e8e21c220a2a026dbd798
+```
+
+Obsevemos el estado de nuestros contenedores:
+
+```bash
+docker ps -a
+```
+
+Respuesta esperada:
+
+```commandline
+CONTAINER ID   IMAGE     COMMAND                  CREATED          STATUS                      PORTS       NAMES
+798c3fe2cb6f   mongo     "docker-entrypoint.s…"   36 seconds ago   Up 35 seconds               27017/tcp   mongo_db
+e4064d4de0b9   nginx     "/docker-entrypoint.…"   18 hours ago     Exited (0) 18 hours ago                 proxy
+f53ace3b3544   ubuntu    "tail -f /dev/null"      18 hours ago     Exited (137) 18 hours ago               alwaysup
+3d75f60733ce   ubuntu    "/bin/bash"              19 hours ago     Exited (0) 19 hours ago                 ubuntito
+```
+
+Excelente ya tenemos un contenedor de mongo llamado `mongo_db`
+
+Entremos al contenedor con el comando `exec` de forma iterativa
+
+```bash
+docker exec -it mongo_db bash
+```
+
+Ahora supongamos que queremos crear una base de datos llamada `platzi` y crear  un schema llamado `users` donde almacenemos 
+el nombre de los usuarios.
+
+Para ello estando dentro del contenedor de `mongo_db`
+
+Ejecutamos el siguiente comando: `mongosh`
+
+```bash
+root@798c3fe2cb6f:/# mongosh
+```
+
+Respuesta esperada:
+
+```commandline
+Current Mongosh Log ID:	63f2a2e7630523f5d94c34be
+Connecting to:		mongodb://127.0.0.1:27017/?directConnection=true&serverSelectionTimeoutMS=2000&appName=mongosh+1.6.2
+Using MongoDB:		6.0.4
+Using Mongosh:		1.6.2
+
+For mongosh info see: https://docs.mongodb.com/mongodb-shell/
+
+
+To help improve our products, anonymous usage data is collected and sent to MongoDB periodically (https://www.mongodb.com/legal/privacy-policy).
+You can opt-out by running the disableTelemetry() command.
+
+------
+   The server generated these startup warnings when booting
+   2023-02-19T22:24:27.100+00:00: Using the XFS filesystem is strongly recommended with the WiredTiger storage engine. See http://dochub.mongodb.org/core/prodnotes-filesystem
+   2023-02-19T22:24:27.303+00:00: Access control is not enabled for the database. Read and write access to data and configuration is unrestricted
+   2023-02-19T22:24:27.303+00:00: vm.max_map_count is too low
+------
+
+------
+   Enable MongoDB's free cloud-based monitoring service, which will then receive and display
+   metrics about your deployment (disk utilization, CPU, operation statistics, etc).
+   
+   The monitoring data will be available on a MongoDB website with a unique URL accessible to you
+   and anyone you share the URL with. MongoDB may use this information to make product
+   improvements and to suggest MongoDB products and deployment options to you.
+   
+   To enable free monitoring, run the following command: db.enableFreeMonitoring()
+   To permanently disable this reminder, run the following command: db.disableFreeMonitoring()
+```
+
+Podemos listar a nuestras bases de datos actuales:
+
+```bash
+test> show dbs
+```
+
+Respuesta esperada:
+
+```commandline
+admin   40.00 KiB
+config  12.00 KiB
+local   40.00 KiB
+```
+
+Y ahora creamos una nueva llamada `platzi`
+
+```bash
+test> use platzi
+```
+
+Respuesta esperada:
+
+```commandline
+switched to db platzi
+```
+
+Y ahora en el schema `users`agreguemos el nombre de Gabriel a la columna `nombre`:
+
+```bash
+platzi> db.users.insert({"nombre": "Gabriel"}
+```
+
+Respuesta esperada:
+
+```commandline
+DeprecationWarning: Collection.insert() is deprecated. Use insertOne, insertMany, or bulkWrite.
+{
+  acknowledged: true,
+  insertedIds: { '0': ObjectId("63f2a331babefe10bec0f55c") }
+}
+```
+
+Y para observar que el dato se encuentra correctamente grabado:
+
+```bash
+platzi> db.users.find()
+```
+
+Respuesta esperada:
+
+```commandline
+[ { _id: ObjectId("63f2a331babefe10bec0f55c"), nombre: 'Gabriel' } ]
+```
+
+Sin embargo, si nosotros ahora detuviéramos el contenedor y lo borraremos, si volviéramos a crear un nuevo contenedor mongodb
+y quisiéramos crear la dbs `platzi` está sería completamente nueva y nuestros datos de la base anterior no existirían, puesto
+que esta es una nueva instancia de mongo db es un contenedor completamente aislado del anterior.
+
+Eliminemos la base `mongo_db`
+
+```bash
+docker rm -f mongo_db
+```
+Ahora lo que vamos a hacer es una carpeta especial que esté espejada y que lo qué existe en esta carpeta también se vea de 
+la misma manera dentro de un contenedor.
+
+Primero vamos a crear una carpeta llamada `mongo_db` que usaremos para hacerla espejo más adelante.
+
+```bash
+mkdir mongo_db
+```
+
+Lo primero que necesito es la ruta completa de dónde se encuentra mi carpeta `mongodata`:
+
+```bash
+pwd
+```
+
+Respuesta esperada:
+
+```commandline
+/home/ichcanziho/Documentos/programacion/cursos_platzi/docker/dockerdata
+```
+
+Entonces ahora vamos a crear de nuevo el contenedor de mongo pero con un data bind de la carpeta dockerdata:
+
+```bash
+docker run -d --name mongo_db -v /home/ichcanziho/Documentos/programacion/cursos_platzi/docker/dockerdata/mongo_db:/data/db mongo
+```
+
+Después del parámetro -v debe ir la ruta completa de la carpeta local : ruta de la carpeta dentro del contenedor.
+
+Entramos al contenedor:
+
+```bash
+docker exec -it mongo_db bash
+mongosh
+use platzi
+db.users.insert({"nombre": "Gabriel"})
+db.users.find()
+exit 
+exit
+```
+Y puedo volver a eliminar el contenedor:
+```bash
+docker rm -f mongo_db
+```
+
+Ahora dentro de dockerdata tengo una carpeta llamada `mongo_db` que tiene toda la información que genero el contenedor anterior.
+
+Si ahora vuelvo a crear el contenedor:
+
+```bash
+docker run -d --name mongo_db -v /home/ichcanziho/Documentos/programacion/cursos_platzi/docker/dockerdata/mongo_db:/data/db mongo
+docker exec -it mongo_db bash
+mongosh
+use cursos_platzi
+db.users.find()
+```
+
+Ahora sí se encontraran mis datos disponibles:
+
+```commandline
+[ { _id: ObjectId("63f2a9d2850faa3a35505028"), nombre: 'Gabriel' } ]
+```
+
 ## 3.2 Volúmenes
 
+Una alternativa bastante eficiente y más segura es usar volúmenes, pues estos los gestiona directamente Docker y solo son visibles
+por el administrador y no tienes necesidad de estar enlazando carpetas entre la máquina local y el contenedor docker.
+
+> Nota de seguirada: Ojo que el contenido de los volúmenes “aministrados por Docker” sí se puede acceder desde fuera… Simplemente hay que hacer docker volume inspect VOLUME_NAME, ahí aparecerá el “Mountpoint” del volumen (path en el disco local), y si nos dirigimos allí (con usuario administrador o sudo en sistemas UNIX) podremos ver todo el contenido y gestionarlo.
+
+Los volúmenes son el mecanismo preferido para conservar los datos generados y utilizados por los contenedores de Docker. 
+Si bien los montajes de enlace dependen de la estructura del directorio y el sistema operativo de la máquina host, 
+Docker administra completamente los volúmenes. Los volúmenes tienen varias ventajas sobre los montajes vinculantes:
+
+**Ventajas**
+
+- Mayor seguridad al compartir archivos entre contenedores, los archivos los maneja directamente docker esto implica que, cualquier persona no puedes acceder a estos archivos.
+- Los volúmenes son más fáciles de respaldar o migrar que enlazar montajes.
+- Puede administrar volúmenes mediante los comandos de la CLI de Docker o la API de Docker.
+- Los volúmenes funcionan tanto en contenedores de Linux como de Windows.
+- Los volúmenes se pueden compartir de forma más segura entre varios contenedores.
+- Los controladores de volumen le permiten almacenar volúmenes en hosts remotos o proveedores en la nube, para cifrar el contenido de los volúmenes o para agregar otras funciones.
+- Los nuevos volúmenes pueden tener su contenido pre cargado por un contenedor.
+- Los volúmenes en Docker Desktop tienen un rendimiento mucho mayor que los montajes de enlace de hosts de Mac y Windows.
+- Además, los volúmenes suelen ser una mejor opción que los datos persistentes en la capa de escritura de un contenedor, porque un volumen no aumenta el tamaño de los contenedores que lo usan y el contenido del volumen existe fuera del ciclo de vida de un contenedor determinado.
+
+**Desventajas**
+- Una de las desventajas es que si se desea visualizar los archivos desde la máquina hosts es mucho más complicado.
+
+
+### Pasos para conservar datos fuera de los contenedores con volúmenes.
+
+1. Crear el volumen
+2. verificar que el volumen fue creado
+3. crear un nuevo contenedor basado en una imagen de mongo e indicarle que guardará o usará los datos de un volumen
+4. Es opcional, pero se puede inspeccionar el contenedor para visualizar si el volumen quedo configurado.
+5. Acceder al bash de nuestro contenedor,
+6. Acceder a mongo
+7. Crear un base de datos y usarla
+8. Realizar una inserción de datos en la base de datos
+9. Confirmar la inserción en la base de datos
+10. Salir del contenedor
+11. borrar contenedor.
+
+### Pasos para crear un nuevo contenedor y usar un volumen anteriormente creado.
+
+1. Crear un nuevo contenedor basado en una imagen de mongo e indicarle que guardará o usará los datos de un volumen anteriormente creado
+2. Acceder al bash de nuestro contenedor,
+3. Acceder a mongo
+4. Usar la bases de datos creadas
+5. Confirmar la inserción en la base de datos, que fue realizada anteriormente
+
+### Ejecución de los pasos para conservar datos fuera de los contenedores con usando volúmenes
+
+```bash
+$ sudo docker volume create dbdata
+$ sudo docker volume ls
+$ sudo docker run -d --name db --mount src=dbdata,dst=/data/db mongo
+$ sudo docker inspect db
+$ sudo docker exec -it db bash
+$ mongosh
+use platzi
+
+db.users.insert({“nombre”:“guido”})
+
+db.users.find()
+
+$ exit
+sudo docker rm -f
+```
+
+### Ejecución de los pasos para crear un nuevo contenedor y usar un volumen anteriormente creado.
+
+```bash
+$ sudo docker run -d --name db --mount src=dbdata,dst=/data/db mongo
+$ sudo docker exec -it db bash
+$ mongosh
+show dbs
+use platzi
+
+db.users.find()
+```
+
+### Explicación de los comandos de volumen
+
+```commandline
+parámetros
+
+	<nombre c>: 
+		nombre del contenedor, así se llamará localmente
+<path L>: 
+	directorio local
+<path C>: 
+	directorio del contenedor
+< nombre i>:
+	nombre de la imagen
+
+flag
+--name: 
+	asigna un nombre de forma local a nuestro contenedor
+-d or --detach: 
+	Inicia un contenedor sin asociar el input/output del contenedor al terminal.
+    --mount  src =<volume F>,dst=<Carpeta d>:
+	Se indica  el  src es igual al volumen fuente, dst es igual a la carpeta destino, es decir a la carpeta del contenedor donde se genera los datos 
+```
+
+Ejemplo:
+
+```commandline
+$ sudo docker run -d --name db --mount  src =dbdata,dst=/data/db mongo
+```
+
+Crear un volumen
+
+```commandline
+$ sudo docker volume create <nombre de volumen>
+```
+
+```commandline
+volume create:
+	Crear volumen 
+<nombre de volumen>:
+	Nombre Volumen
+```
+
+Ejemplo:
+
+```commandline
+$ sudo docker volume create dbdata
+```
+
+![docker_vol](imgs/comandos_volumen.webp)
+
+
 ## 3.3 Insertar y extraer archivos de un contenedor
+
+Independientemente de si usamos bind mounts, o volúmenes, muchas veces queremos poder compartir archivos desde nuestra máquina 
+anfitriona a nuestro contenedor, esto es lo que veremos en esta clase.
+
+![temp_files](imgs/temp_files.webp)
+
+- `Host:` Donde Docker esta instalado.
+- `Bind Mount:` Guarda los archivos en la máquina local persistiendo y visualizando estos datos (No seguro).
+- `Volume:` Guarda los archivos en el área de Docker donde Docker los administra (Seguro).
+- `TMPFS Mount:` Guarda los archivos temporalmente y persiste los datos en la memoria del contenedor, cuando muera sus datos mueren con el contenedor.
+
+Ahora hagamos un ejercicio rápido de transferencia de archivos entre máquina local y contenedor.
+
+1. Creamos un archivo de texto vació:
+   ```bash
+   touch prueba.txt
+   ```
+2. Creamos un contenedor de ubuntu que se mantenga corriendo:
+    ```bash
+   docker run -d --name copytest ubuntu tail -f /dev/null
+   docker ps -a
+   ```
+   Respuesta esperada:
+   ```commandline
+    CONTAINER ID   IMAGE     COMMAND                  CREATED          STATUS          PORTS       NAMES
+    b87515bed57b   ubuntu    "tail -f /dev/null"      13 seconds ago   Up 12 seconds               copytest
+    9a21d22678d1   mongo     "docker-entrypoint.s…"   24 minutes ago   Up 24 minutes   27017/tcp   mongodb
+    ```
+3. Entramos dentro del contenedor de ubuntu:
+    ```bash
+   docker exec -it copytest bash
+   ```
+4. Creo una carpeta dentro del directorio principal de ubuntu:
+    ```bash
+    mkdir testing 
+   ll
+    ```
+   Respuesta esperada:
+    ```commandline
+    total 60
+    drwxr-xr-x   1 root root 4096 Feb 20 17:00 ./
+    drwxr-xr-x   1 root root 4096 Feb 20 17:00 ../
+    -rwxr-xr-x   1 root root    0 Feb 20 16:57 .dockerenv*
+    lrwxrwxrwx   1 root root    7 Jan 26 02:03 bin -> usr/bin/
+    drwxr-xr-x   2 root root 4096 Apr 18  2022 boot/
+    drwxr-xr-x   5 root root  340 Feb 20 16:57 dev/
+    drwxr-xr-x   1 root root 4096 Feb 20 16:57 etc/
+    drwxr-xr-x   2 root root 4096 Apr 18  2022 home/
+    lrwxrwxrwx   1 root root    7 Jan 26 02:03 lib -> usr/lib/
+    lrwxrwxrwx   1 root root    9 Jan 26 02:03 lib32 -> usr/lib32/
+    lrwxrwxrwx   1 root root    9 Jan 26 02:03 lib64 -> usr/lib64/
+    lrwxrwxrwx   1 root root   10 Jan 26 02:03 libx32 -> usr/libx32/
+    drwxr-xr-x   2 root root 4096 Jan 26 02:03 media/
+    drwxr-xr-x   2 root root 4096 Jan 26 02:03 mnt/
+    drwxr-xr-x   2 root root 4096 Jan 26 02:03 opt/
+    dr-xr-xr-x 500 root root    0 Feb 20 16:57 proc/
+    drwx------   2 root root 4096 Jan 26 02:06 root/
+    drwxr-xr-x   5 root root 4096 Jan 26 02:06 run/
+    lrwxrwxrwx   1 root root    8 Jan 26 02:03 sbin -> usr/sbin/
+    drwxr-xr-x   2 root root 4096 Jan 26 02:03 srv/
+    dr-xr-xr-x  13 root root    0 Feb 20 16:57 sys/
+    drwxr-xr-x   2 root root 4096 Feb 20 17:00 testing/
+    drwxrwxrwt   2 root root 4096 Jan 26 02:06 tmp/
+    drwxr-xr-x  14 root root 4096 Jan 26 02:03 usr/
+    drwxr-xr-x  11 root root 4096 Jan 26 02:06 var/
+    ```
+5. Ahora puedo salir de la máquina de ubuntu para estar en la terminal principal
+    ```bash
+   exit
+    ```
+
+6. Vamos a copiar nuestro archivo `prueba.txt` a la carpeta `testing` del contenedor `copytest`:
+    ```commandline
+    docker cp <archivo a copiar> <nombre o id del contenedor>:<ruta a donde copiar>/<nuevo nombre del archivo>
+    ```
+    ```bash
+   docker cp prueba.txt copytest:/testing/test.txt 
+   ```
+
+7. Verificamos que la copia del archivo fue exitosa:
+    ```bash
+    docker exec -it copytest bash
+   cd testing
+   ll
+   ```
+   Respuesta esperada:
+    ```commandline
+    total 8
+    drwxr-xr-x 2 root root 4096 Feb 20 17:02 ./
+    drwxr-xr-x 1 root root 4096 Feb 20 17:02 ../
+    -rw-rw-r-- 1 1000 1000    0 Feb 20 16:55 test.txt
+    ```
+   Salimos del contenedor
+    ```bash
+   exit
+    ```
+8. Finalmente, veremos como pasar datos de dentro del contenedor a nuestra máquina local:
+    ```commandline
+    docker cp <nombre o id del contenedor>:<ruta a carpeta o archivo a copiar> <ruta de destino>
+    ```
+   Ejemplo:
+    ```bash
+   docker cp copytest:/testing localtesting
+    ```   
+
+9. Verificando que los datos se hayan copiado correctamente a nuestra máquina local:
+   ```bash
+   ll 
+   ```
+   Respuesta esperada:
+    ```commandline
+    drwxrwxr-x  5 ichcanziho ichcanziho  4096 feb 20 11:09 ./
+    drwxrwxr-x 10 ichcanziho ichcanziho  4096 feb 16 11:35 ../
+    drwxrwxr-x  3 ichcanziho ichcanziho  4096 feb 19 17:05 dockerdata/
+    drwxrwxr-x  2 ichcanziho ichcanziho  4096 feb 20 10:51 imgs/
+    drwxr-xr-x  2 ichcanziho ichcanziho  4096 feb 20 11:02 localtesting/
+    -rw-rw-r--  1 ichcanziho ichcanziho     0 feb 20 10:55 prueba.txt
+    -rw-rw-r--  1 ichcanziho ichcanziho 48633 feb 20 11:08 README.MD
+    ```
+   Verificando archivos copiados:
+   ```bash
+   cd localtesting
+   ll 
+   ```
+   Respuesta esperada:
+    ```commandline
+    drwxr-xr-x 2 ichcanziho ichcanziho 4096 feb 20 11:02 ./
+    drwxrwxr-x 5 ichcanziho ichcanziho 4096 feb 20 11:09 ../
+    -rw-rw-r-- 1 ichcanziho ichcanziho    0 feb 20 10:55 test.txt
+    ```
 
 # 4. Imágenes
 
