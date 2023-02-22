@@ -322,7 +322,7 @@ recursos, ya que estos corren compartiendo el host del kernel de Linux, por otro
 sistema operativo(O.S) con sus propias apps que corre sobre el tuyo usando virtualización y que consume muchos recursos 
 en el nivel de los GB. Una mejor forma de ver esto es observando la arquitectura de los contendores y de las máquinas virtuales
 
-> ## Resumen el bullets
+> ## Resumen en bullets
 
 - El concepto de contenedor es uno de los más importantes en el mundo de Docker
 - El contenedor será el lugar donde se correrán nuestras aplicaciones
@@ -1533,11 +1533,722 @@ todas las operaciones se hagan desde un contenedor.
 
 # 5. Docker como herramienta de desarrollo
 
+Esta sección cuenta con las siguientes clases:
+
+- [5.1 Usando Docker para desarrollar aplicaciones](#51-usando-docker-para-desarrollar-aplicaciones)
+
+- [5.2 Aprovechando el caché de capas para estructurar correctamente tus imágenes](#52-aprovechando-el-caché-de-capas-para-estructurar-correctamente-tus-imágenes)
+
+- [5.25 EXTRA: Creando un contenedor FLASK-PYTHON](#525-extra--creando-un-contenedor-flask-python)
+
+- [5.3 Docker networking: Colaboración entre contenedores](#53-docker-networking--colaboración-entre-contenedores)
+
 ## 5.1 Usando Docker para desarrollar aplicaciones
+
+En esta clase veremos como Docker nos puede ayudar en nuestro trabajo diario para construir aplicaciones.
+
+Para esta clase vamos a utilizar un contenedor de Docker de un repositorio de github de [Platzi](https://github.com/platzi/docker)
+
+1. Creamos una nueva carpeta para el proyecto
+   ```bash
+   mkdir docker_platzi
+   cd docker_platzi
+   ```
+2. Clonamos el repositorio de github:
+   ```bash
+   git clone https://github.com/platzi/docker
+   cd docker
+   ```
+   Podemos utilizar nuestro editor de texto favorito para observar los documentos del repositorio:
+   
+   ![docker_platzi](imgs/docker_platzi.png)
+   
+   Centrémonos en [index.js](docker_platzi/docker/index.js) Que es una API que se conecta a una base de MongoDB
+   ```commandline
+   const express = require('express')
+   const app = express()
+   const port = 3000
+   
+   const MongoClient = require('mongodb').MongoClient
+   
+   // Connection URL
+   const mongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/test';
+   
+   app.get('/', (req, res) => {
+     MongoClient.connect(mongoUrl, { useNewUrlParser: true }, (err, db) => {
+       if (err) {
+         res.status(500).send('💥 BOOM 💥: ' + err);
+       } else {
+         res.send('Me conecté a la DB! 😎');
+         db.close();
+       }
+     });
+   });
+   
+   app.listen(port, () => console.log(`Server listening on port ${port}!`))
+   ```
+   
+   Ese es el proyecto del repositorio, pero ahora veamos por dentro como luce el [Dockerfile](docker_platzi/docker/Dockerfile)
+   del proyecto:
+   
+   ```doctest
+   # Imagen base (node en la version 12)
+   FROM node:12
+   
+   # Copiar todo lo que hay en la carpeta actual, a la carpeta /usr/src en el contenedor
+   
+   COPY [".", "/usr/src/"]
+   
+   # Establecer el directorio de trabajo (cd /usr/src)
+   WORKDIR /usr/src
+   
+   # Descargar las dependencias del proyecto (en jerga de node, va a instalar lo que se 
+   # encuentre dentro del archivo `package.json` bastante similar al `requirements.txt`  
+   # de pip para python
+   RUN npm install
+   
+   # Le dice al contenedor que esté escuchando en el puerto 3000
+   EXPOSE 3000
+   
+   # Ejecutar el comando de node `index.js`
+   CMD ["node", "index.js"]
+   ```
+3. Ahora que entendimos la plantilla del `Dockerfile` vamos a proceder a crear la imagen con un `Docker build`:
+   ```bash
+   docker build -t platziapp .
+   ```
+   Recordemos que en este ejemplo `platziapp` es por decirlo, el `nombre del repositorio` que como solo vamos a usar de forma
+   `local` no hace falta poner el nombre de usuario antes.
+   
+   Respuesta esperada:
+   
+   ```commandline
+   [+] Building 104.3s (10/10) FINISHED                                                                 
+    => [internal] load .dockerignore                                                               0.1s
+    => => transferring context: 133B                                                               0.0s
+    => [internal] load build definition from Dockerfile                                            0.1s
+    => => transferring dockerfile: 149B                                                            0.0s
+    => [internal] load metadata for docker.io/library/node:12                                      1.7s
+    => [auth] library/node:pull token for registry-1.docker.io                                     0.0s
+    => [1/4] FROM docker.io/library/node:12@sha256:01627afeb110b3054ba4a1405541ca095c8bfca1cb6f2  93.1s
+    => => resolve docker.io/library/node:12@sha256:01627afeb110b3054ba4a1405541ca095c8bfca1cb6f2b  0.0s
+    => => sha256:3a69ea1270dbf4ef20477361be4b7a43400e559c6abdfaf69d73f7c755f434f5 2.21kB / 2.21kB  0.0s
+    => => sha256:9bed1e86f01ee95c76d2c8b4385a47ae336e6d293afade9368469d99daa93 11.30MB / 11.30MB  18.5s
+    => => sha256:f44e4bdb3a6c1325cc4d40e585ed7a759127c0c87b0388ec0236b1698827d70 4.34MB / 4.34MB  15.4s
+    => => sha256:01627afeb110b3054ba4a1405541ca095c8bfca1cb6f2be9479c767a2711879e 776B / 776B      0.0s
+    => => sha256:6c8de432fc7f7d8c58899f61982d1662ec6b73fb3ef92f862ba170dcc5b64fa9 7.68kB / 7.68kB  0.0s
+    => => sha256:f5196cdf25181bc7e4411865a2e002932b7b6b0ffce787c04c1bdeaf1f204f 45.43MB / 45.43MB  8.5s
+    => => extracting sha256:f5196cdf25181bc7e4411865a2e002932b7b6b0ffce787c04c1bdeaf1f204f20       0.5s
+    => => sha256:2f75d131f4060950dd6cc1f580e2fa5504ece8d692113a9cdb0a866637b39 49.77MB / 49.77MB  22.0s
+    => => sha256:07dff4ad21ebdb3ce3e329699663b2f81af70152453025f6624584a39a8 214.48MB / 214.48MB  89.4s
+    => => extracting sha256:9bed1e86f01ee95c76d2c8b4385a47ae336e6d293afade9368469d99daa9369f       0.1s
+    => => sha256:e0ac4f13b766d321acc3b650d3d23b82828995711f6f247ff591722c00d04ce 4.19kB / 4.19kB  19.2s
+    => => extracting sha256:f44e4bdb3a6c1325cc4d40e585ed7a759127c0c87b0388ec0236b1698827d70d       0.1s
+    => => sha256:df2c3b2eb7cc63351bb32f26457bbe0402af8082548f26975f0c329bc7841 23.70MB / 23.70MB  34.9s
+    => => extracting sha256:2f75d131f4060950dd6cc1f580e2fa5504ece8d692113a9cdb0a866637b397d7       0.7s
+    => => sha256:efe636eac583776a8a114d50fef15bc65b648f3d2bb53326cf1f21cc5ef2b3a 2.34MB / 2.34MB  23.1s
+    => => sha256:fe17849545bb51455d3f7c8773ded2dbb1d6668a85bd00564573a4b88afd36f6 464B / 464B     23.5s
+    => => extracting sha256:07dff4ad21ebdb3ce3e329699663b2f81af70152453025f6624584a39a8e22b6       2.4s
+    => => extracting sha256:e0ac4f13b766d321acc3b650d3d23b82828995711f6f247ff591722c00d04cec       0.0s
+    => => extracting sha256:df2c3b2eb7cc63351bb32f26457bbe0402af8082548f26975f0c329bc7841881       0.4s
+    => => extracting sha256:efe636eac583776a8a114d50fef15bc65b648f3d2bb53326cf1f21cc5ef2b3ae       0.1s
+    => => extracting sha256:fe17849545bb51455d3f7c8773ded2dbb1d6668a85bd00564573a4b88afd36f6       0.0s
+    => [internal] load build context                                                               0.1s
+    => => transferring context: 105.14kB                                                           0.0s
+    => [2/4] COPY [., /usr/src/]                                                                   0.2s
+    => [3/4] WORKDIR /usr/src                                                                      0.1s
+    => [4/4] RUN npm install                                                                       8.9s
+    => exporting to image                                                                          0.2s
+    => => exporting layers                                                                         0.2s
+    => => writing image sha256:a01a9b0323668309fe1286c86560c03b62da570bc95292483c818706c3a5d996    0.0s 
+    => => naming to docker.io/library/platziapp                                                    0.0s
+   ```
+4. Corroboramos que `platziapp` ya sea una imagen disponible:
+
+   ```commandline
+   docker image ls
+   ```
+   
+   Respuesta esperada:
+   
+   ```commandline
+   REPOSITORY          TAG       IMAGE ID       CREATED         SIZE
+   platziapp           latest    a01a9b032366   2 minutes ago   931MB
+   ichcanziho/ubuntu   gabriel   07b38109d489   30 hours ago    77.8MB
+   ubuntu              gabriel   07b38109d489   30 hours ago    77.8MB
+   nginx               latest    3f8a00f137a0   12 days ago     142MB
+   mongo               latest    a440572ac3c1   2 weeks ago     639MB
+   ubuntu              latest    58db3edaf2be   3 weeks ago     77.8MB
+   hello-world         latest    feb5d9fea6a5   17 months ago   13.3kB
+   ```
+5. Como ya tengo una imagen construida entonces ahora puedo crear un contenedor a partir de él:
+
+   ```bash
+   docker run --rm -p 3000:3000 platziapp
+   ```
+   
+   > Nota: el parámetro `--rm` 
+   > 
+   > Parámetro -p indicar que el puerto del host:contenedor están asociados.
+   
+   Respuesta esperada:
+   
+   ```commandline
+   Server listening on port 3000!
+   ```
+   
+   Si me dirijo a [localhost:3000](localhost:3000)
+   
+   ![node_error](imgs/node_error.png)
+   
+   Podemos observar que hemos ejecutado exitosamente el contenedor. Claro hay un error porque no tenemos las credenciales
+   para acceder a la base de datos, pero este error válida que nuestro proceso de ejecutar el contenedor ha sido exitoso.
+
 
 ## 5.2 Aprovechando el caché de capas para estructurar correctamente tus imágenes
 
+Problema: Imaginemos que en nuestro archivo del ejemplo pasado [index.js](docker_platzi/docker/index.js) quisiera cambiar
+una línea de código, digamos cambiar una palabra mal escrita, tendría que volver a construir la imagen con, `Docker build`
+pero este proceso de nuevo sería lento porque tendría que volver a descargar, instalar y ejecutar todo. Sin embargo, podemos
+hacer un pequeño truco de optimización en el propio [Dockerfile](docker_platzi/docker/Dockerfile) que nos permita ahorrar mucho tiempo.
+
+La primera versión del dockerfile es la siguiente:
+
+```doctest
+FROM node:12
+
+COPY [".", "/usr/src/"]
+
+WORKDIR /usr/src
+
+RUN npm install
+
+EXPOSE 3000
+
+CMD ["node", "index.js"]
+```
+
+Vemos que la primera área que podemos optimizar es que NO necesitamos copiar TODO lo que hay en la carpeta del proyecto `.` a
+`/usr/src` para después instalar las dependencias de npm.
+
+¿Qué pasaría si primero, únicamente copio los archivos que necesito para instalar las dependencias de npm, después ejecuto 
+`RUN npm install` y hasta después de la instalación de las dependencias entonces termino de copiar los demás archivos?
+
+```doctest
+FROM node:12
+
+COPY ["package.json", "package-lock.json", "/usr/src/"]
+
+WORKDIR /usr/src
+
+RUN npm install
+
+COPY [".", "/usr/src/"]
+
+EXPOSE 3000
+
+CMD ["node", "index.js"]
+```
+
+Primero estaría instalando todas las dependencias de node y ya después copiaría el código, esto significa que si yo modifico
+una línea del código de `index.js` y volviera a hacer `docker build` NO tendría que rehacer todo desde 0, puesto que las primeras capas
+de la instalación de `npm` no se modificaron, entonces realmente solo tendría que correr las últimas capas que van desde la copia
+de los archivos modificados, lo cual es mucho más ventajoso al momento de desarrollar proyectos.
+
+Sin embargo, podemos optimizar aún más está lógica con las herramientas que ya hemos visto en clase. El objetivo es que el 
+`contenedor se este actualizando automáticamente cada que cambiamos manualmente el código`
+Vamos a cambiar ligeramente nuestro Dockerfile para que el último comando sea más inteligente.
+
+```doctest
+FROM node:12
+
+COPY ["package.json", "package-lock.json", "/usr/src/"]
+
+WORKDIR /usr/src
+
+RUN npm install
+
+COPY [".", "/usr/src/"]
+
+EXPOSE 3000
+
+CMD ["npx", "nodemon", "index.js"]
+```
+
+Lo que hace está versión es que en lugar de ejecutar directamente node sobre index.js lo que hace es un servicio que le
+permite reiniciar a node si encuentra cambios en el código. Pero lo que nos hace falta es poder comunicarnos desde fuera
+nuestra máquina local a nuestro contenedor. Pero nosotros ya sabemos hacer eso con [Bind Mounts](#31-bind-mounts).
+
+Asi que vamos entonces a construir nuestra imagen actualizada de platziapp y después vamos a crear un nuevo contenedor que tenga
+un enlace directo entre el archivo `index.js` de mi máquina local con el `index.js` del contenedor.
+
+> Nota para borrar la imagen anterior de platziapp utiliza `docker rmi <IMAGE ID>`
+
+```bash
+docker build -t platziapp .
+```
+
+Una vez construida nuestra nueva imagen de `platziapp`
+
+Vamos a crear nuestro nuevo contenedor pero con un poco más de información que la vez pasada:
+
+  ```bash
+   docker run --rm --init -p 3000:3000 --name nodetest -v $(pwd)/index.js:/usr/src/index.js platziapp
+   ```
+   > ## Notas:
+   >
+> El comando --init es para decirle al contenedor que con ctrl+c se detenga
+> 
+> con el atajo $(pwd) puedo escribir toda la ruta absoluta hasta donde me encuentro
+> 
+> el comando -v como recordatorio es para crear el bind mounts entre el archivo index.js de mi máquina local y
+> el que se encontrará dentro del contenedor en /usr/src/index.js
+   
+Respuesta esperada:
+
+```commandline
+[nodemon] 1.18.6
+[nodemon] to restart at any time, enter `rs`
+[nodemon] watching: *.*
+[nodemon] starting `node index.js`
+Server listening on port 3000!
+```
+
+Ahora si yo modifico un poco el código de index.js de forma automática me reinicia el servidor:
+
+```commandline
+[nodemon] restarting due to changes...
+[nodemon] starting `node index.js`
+Server listening on port 3000!
+```
+
+## 5.25 EXTRA: Creando un contenedor FLASK-PYTHON
+
+El objetivo de esta clase extra será crear una API con [FLASK](https://flask.palletsprojects.com/en/2.2.x/) en Python que
+mediante el método POST de un request reciba como parámetro de entrada un nombre y devuelva `hola nombre`.
+
+```python
+query = {"nombre": "Gabriel"}
+x = requests.post("http://127.0.0.1:8181/api_saludar", json=query)
+print(x.text)
+```
+Respuesta esperada:
+```commandline
+Hola Gabriel!
+```
+
+1. **Primer paso:** Construyendo la API de forma local.
+
+   Creamos la carpeta del proyecto
+   ```bash
+   mkdir flaskapi
+   cd flaskapi
+   ```
+   
+   Creamos un entorno virtual de python:
+   ```bash
+   python3 -m venv .flaskvenv
+   ```
+   
+   Activamos el entorno virtual:
+   ```bash
+   source .flaskvenv/bin/activate
+   ```
+   
+   Instalamos las librerias necesarias:
+   
+   ```bash
+   pip install Flask
+   pip install requests
+   pip freeze
+   ```
+   
+   Respuesta esperada:
+   
+   ```commandline
+   certifi==2022.12.7
+   charset-normalizer==3.0.1
+   click==8.1.3
+   Flask==2.2.3
+   idna==3.4
+   itsdangerous==2.1.2
+   Jinja2==3.1.2
+   MarkupSafe==2.1.2
+   requests==2.28.2
+   urllib3==1.26.14
+   Werkzeug==2.2.3
+   ```
+   
+   Creamos nuestro archivo de `requirements.txt`
+   ```bash
+   pip freeze > requirements.txt
+   ```
+   
+   Creamos nuestra aplicación FLASK-PYTHON `app.py`
+   ```bash
+   touch app.py
+   ```
+   
+   Código de [app.py](flaskapi/app.py)
+   
+   ```python
+   from flask import Flask, request
+   from json import loads as decode_json
+   
+   app = Flask(__name__)
+   
+   
+   @app.route('/')
+   def hello_world():
+       return 'Hello, Docker!'
+   
+   
+   @app.route("/api_saludar", methods=["POST"])
+   def saludar():
+       args = decode_json(request.data)
+       nombre = args["nombre"]
+       return f"Hola {nombre}!"
+   
+   
+   # flask --app app run -p 8181
+   ```
+   
+   Ejecutando nuestra API en local:
+   
+   ```bash
+   flask --app app run -p 8181
+   ```
+   
+   Respuesta esperada:
+   
+   ```pycon
+    * Serving Flask app 'app'
+    * Debug mode: off
+   WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+    * Running on http://127.0.0.1:8181
+   Press CTRL+C to quit
+   ```
+   
+   Creemos nuestro archivo POST de prueba:
+   
+   ```bash
+   touch send.py
+   ```
+   
+   Código de prueba [send.py](flaskapi/send.py)
+   
+   ```python
+   import requests
+   from time import time
+   
+   port = 8181
+   endpoint = "api_saludar"
+   url = "http://127.0.0.1:{:d}/{:s}".format(port, endpoint)
+   headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
+   query = {"nombre": "Gabriel"}
+   if __name__ == '__main__':
+       a = time()
+       x = requests.post(url, json=query, headers=headers)
+       print(x.text)
+       print(f"Request's time: {time() - a} seconds")
+   ```
+   
+   Corramos nuestro código de prueba:
+   
+   ```bash
+   python send.py 
+   ```
+   
+   Respuesta esperada:
+   
+   ```commandline
+   Hola Gabriel!
+   Request's time: 0.002546548843383789 seconds
+   ```
+   
+   Hasta este momento tenemos nuestra API funcionando perfectamente de forma Local.
+2.  **Segundo paso:** Creemos nuestro `Dockerfile`:
+
+   ```doctest
+   # Empezamos de una imagen de python ligero
+   FROM python:3.8-slim-buster
+   # Nuestro contenedor tendrá una carpeta llamada app, dentro de esta carpeta estará disponible todo el código
+   # y servirá como raiz del proyecto, el comando WORKDIR crear la carpeta y automáticamente hace CD a la carpeta
+   WORKDIR /app
+   # de mi máquina local copia el archivo requirements.txt al contenedor con el nombre requirements.txt
+   COPY requirements.txt requirements.txt
+   # En el contenedor instala los requisitos de python
+   RUN pip3 install -r requirements.txt
+   # Termina de copiar todo lo que había en la carpeta raíz del proyecto local al contenedor 
+   COPY . .
+   # Ejecuta el servidor flask en el host 0.0.0.0 y puerto 8181
+   CMD [ "python3", "-m" , "flask", "run", "--host=0.0.0.0", "--port=8181"]
+   ```
+   
+   Antes de continuar repasemos la estructura del directorio de nuestro proyecto:
+   
+   ```commandline
+   python-docker
+   |____ app.py
+   |____ requirements.txt
+   |____ Dockerfile
+   |____ send.py
+   ```
+3. **Tercer paso:** Construyamos la imagen de nuestro proyecto:
+
+   ```bash
+   docker build -t api_saludar .
+   docker images
+   ```
+   
+   Respuesta esperada:
+   ```commandline
+   REPOSITORY          TAG       IMAGE ID       CREATED             SIZE
+   api_saludar         latest    d43f7f6a7f08   28 seconds ago      153MB
+   ```
+4. **Cuarto paso:** Creemos un contenedor con la imagen anterior:
+   ```bash
+   docker run --rm --init -p 8181:8181 --name saludar_contenedor api_saludar
+   ```
+   Probando que el servidor responda un get:
+   ```bash
+   curl localhost:8181
+   ```
+   Respuesta esperada:
+   ```commandline
+   Hello, Docker!
+   ```
+   Probando la API:
+   ```bash
+   python send.py 
+   ```
+   
+   Respuesta esperada en terminal:
+   
+   ```commandline
+   Hola Gabriel!
+   Request's time: 0.002546548843383789 seconds
+   ```
+   Respuesta esperada en el contenedor:
+   ```commandline
+   172.17.0.1 - - [22/Feb/2023 03:06:46] "POST /api_saludar HTTP/1.1" 200 -
+   ```
+   terminamos la ejecución con `ctrl + c`
+   
+   Vemos nuestra lista de contenedores:
+   
+   ```bash
+   docker ps -a
+   ```
+   Respuesta esperada:
+   ```commandline
+   CONTAINER ID   IMAGE            COMMAND                  CREATED        STATUS                      PORTS     NAMES
+   ```
+   Felicidades, hemos limpiado correctamente el contenedor al terminar de usarlo, sin embargo, la imágen aún está disponible para nosotros
+   
+   ```bash
+   docker images
+   ```
+   
+   Respuesta esperada:
+   
+   ```commandline
+   REPOSITORY          TAG       IMAGE ID       CREATED          SIZE
+   api_saludar         latest    d43f7f6a7f08   21 minutes ago   153MB
+   ```
+
+
 ## 5.3 Docker networking: Colaboración entre contenedores
+
+Nuestra aplicación `platziapp` tiene una función para conectarse a una bade de datos de Mongo, sin embargo, el contenedor
+que construimos NO posee una instancia de Mongo, entonces para el contenedor dicho programa NO existe y no puede proceder.
+
+Una forma de lidiar con esta situación es crear otro contenedor que contenga una instalación de Mongo y después enlazar ambos
+contenedores a través de una red. Esta red le permitirá a ambos contenedores intercambiar información entre ellos y ambos
+pensarán que se encuentran juntos, es casi como tener un contenedor que contenga a ambos contenedores. 
+ 
+Primero cambiemos nuestro dockerfile a la versión anterior que era más simple, unicamente para efectos de volver más sencillo el código:
+
+```doctest
+FROM node:12
+
+COPY ["package.json", "package-lock.json", "/usr/src/"]
+
+WORKDIR /usr/src
+
+RUN npm install
+
+COPY [".", "/usr/src/"]
+
+EXPOSE 3000
+
+CMD ["node", "index.js"]
+```
+
+El objetivo de esta clase será crear una red, tener dos contenedores uno de la imagen de `platziapp`y otro de la imagen de 
+`mongo` después conectar a ambos a través de la red que creemos.
+
+1. **Primer paso:** Veamos nuestras redes disponibles:
+   ```bash
+   docker network ls
+   ```
+   Respuesta esperada:
+   ```commandline
+   NETWORK ID     NAME      DRIVER    SCOPE
+   2bcf07cca2ed   bridge    bridge    local
+   74a4aacedd1f   host      host      local
+   51bd06b10ae5   none      null      local
+   ```
+   - La red `bridge` es la red por defecto de docker que está presente por retrocompatibilidad con versiones anteriores.
+   - `host` es una representación en docker de nuestra red real de la máquina
+   - `none` es una red especial de docker que se utiliza para que un contenedor no tenga ningún tipo de acceso a red.
+
+2. **Segundo paso:** Creando nuestra propia red:
+   ```bash
+   docker network create --attachable platzinet
+   docker network ls
+   ```
+   > El parámetro --attachable: permite que otros contenedores se conecten a esta red
+   
+   Respuesta esperada:
+   ```commandline
+   NETWORK ID     NAME        DRIVER    SCOPE
+   2bcf07cca2ed   bridge      bridge    local
+   74a4aacedd1f   host        host      local
+   51bd06b10ae5   none        null      local
+   035f6a90d019   platzinet   bridge    local
+   ```
+   Adicionalmente podemos inspeccionar a nuestra red para conocer más información de la misma:
+   ```commandline
+   docker network inspect platzinet
+   ```
+   Respuesta esperada:
+   ```commandline
+   [
+       {
+           "Name": "platzinet",
+           "Id": "035f6a90d0197aa61f6199b231cf48ae980862693f6c67e76b13465bbd458208",
+           "Created": "2023-02-22T17:01:03.37312466-06:00",
+           "Scope": "local",
+           "Driver": "bridge",
+           "EnableIPv6": false,
+           "IPAM": {
+               "Driver": "default",
+               "Options": {},
+               "Config": [
+                   {
+                       "Subnet": "172.18.0.0/16",
+                       "Gateway": "172.18.0.1"
+                   }
+               ]
+           },
+           "Internal": false,
+           "Attachable": true,
+           "Ingress": false,
+           "ConfigFrom": {
+               "Network": ""
+           },
+           "ConfigOnly": false,
+           "Containers": {},
+           "Options": {},
+           "Labels": {}
+       }
+   ]
+   ```
+   Creamos rápidamente un contenedor llamado `mongodb` de nuestra imagen `mongo`:
+   ```bash
+   docker run -d --name mongodb mongo
+   ```
+   Y también debemos crear un contenedor llamado `app` de nuestra imagen `platziapp`:
+   ```bash
+   docker run -d --name app -p 3000:3000 --env MONGO_URL=mongodb://mongodb:27017/test platziapp
+   ```
+   > Nota: el parámetro --env permite setear variables de entorno para nuestros contenedores
+   >
+   > En nuestro archivo [index.js](docker_platzi/docker/index.js) tenemos el siguiente comando:
+   >
+   > // Connection URL
+   >
+   > const mongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/test';
+   >
+   > el mismo ocupa una variable de entorno llamada `MONGO_URL` pero no nos preocupemos que justamente en el comando de creación de nuestro contenedor de platziapp ya pusimos esa variable con el parámetro --env.
+   >
+   
+   > Nota: después del mongodb://<nombre_del_contenedor> a la izquierda ya estaba `mongodb` pero ese viene del index.js a la derecha va el nombre del contenedor en este caso se llama igual.
+   
+   Veamos nuestros contenedores activos:
+   ```commandline
+   docker ps
+   ```
+   Respuesta esperada:
+   ```commandline
+   CONTAINER ID   IMAGE       COMMAND                  CREATED          STATUS          PORTS                                       NAMES
+   666371aad458   platziapp   "docker-entrypoint.s…"   32 seconds ago   Up 31 seconds   0.0.0.0:3000->3000/tcp, :::3000->3000/tcp   app
+   7936407ea0b8   mongo       "docker-entrypoint.s…"   11 minutes ago   Up 11 minutes   27017/tcp                                   mongodb
+   ```
+3. **Tercer paso:** Conectando nuestros contenedores a nuestra red `platzinet`:
+   ```bash
+   docker network connect platzinet mongodb
+   docker network connect platzinet app
+   docker network inspect platzinet
+   ```
+   Respuesta esperada:
+   ```commandline
+   [
+       {
+           "Name": "platzinet",
+           "Id": "035f6a90d0197aa61f6199b231cf48ae980862693f6c67e76b13465bbd458208",
+           "Created": "2023-02-22T17:01:03.37312466-06:00",
+           "Scope": "local",
+           "Driver": "bridge",
+           "EnableIPv6": false,
+           "IPAM": {
+               "Driver": "default",
+               "Options": {},
+               "Config": [
+                   {
+                       "Subnet": "172.18.0.0/16",
+                       "Gateway": "172.18.0.1"
+                   }
+               ]
+           },
+           "Internal": false,
+           "Attachable": true,
+           "Ingress": false,
+           "ConfigFrom": {
+               "Network": ""
+           },
+           "ConfigOnly": false,
+           "Containers": {
+               "666371aad45889dc8ab1a6da1bd99a7f30cc6cd23699a79922ed35ba76412864": {
+                   "Name": "app",
+                   "EndpointID": "29730c041b6188e3aa31f4d71875e3a0938a7d7437b5fa620607430ee26484c9",
+                   "MacAddress": "02:42:ac:12:00:03",
+                   "IPv4Address": "172.18.0.3/16",
+                   "IPv6Address": ""
+               },
+               "7936407ea0b83b6a0d449c00e0c5160c21aa0fd521a4e5ad9ec1527ef6bf422c": {
+                   "Name": "mongodb",
+                   "EndpointID": "59575c816cf2d693e11f97479279db69e2abf493b3a04f33841410efc649a9da",
+                   "MacAddress": "02:42:ac:12:00:02",
+                   "IPv4Address": "172.18.0.2/16",
+                   "IPv6Address": ""
+               }
+           },
+           "Options": {},
+           "Labels": {}
+       }
+   ]
+   ```
+
+Si nos dirigimos a: 
+[localhost:3000](localhost:3000)
+
+![total](imgs/exito_total.png)
+
+[Éxito total, Éxito Rotundo](https://platzi.com/clases/2066-docker/32861-docker-networking-colaboracion-entre-contenedores/?time=540)
+
+
 
 # 6. Docker compose
 
