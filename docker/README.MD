@@ -3,22 +3,53 @@
 ## Tabla de contenidos:
 
 - [1. Introducción](#1-introducción)
-
+   - [1.1 Todo lo que aprenderás sobre Docker](#11-todo-lo-que-aprenderás-sobre-docker)
+   - [1.2 Las treas áreas en el desarrollo de software profesional](#12-las-treas-áreas-en-el-desarrollo-de-software-profesional)
+   - [1.3 Virtualización](#13-virtualización)
+   - [1.4 Preparando tu entorno de trabajo](#14-preparando-tu-entorno-de-trabajo)
+   - [1.5 Play with Docker](#15-play-with-docker)
+   - [1.6 Qué es y cómo funciona Docker](#16-qué-es-y-cómo-funciona-docker)
 - [2. Contenedores](#2-contenedores)
-
+  - [2.1 Primeros pasos: Hola mundo](#21-primeros-pasos--hola-mundo)
+  - [2.2 Conceptos fundamentales de Docker: contenedores](#22-conceptos-fundamentales-de-docker--contenedores)
+  - [2.3 Comprendiendo el estado de Docker](#23-comprendiendo-el-estado-de-docker)
+  - [2.4 El modo interactivo](#24-el-modo-interactivo)
+  - [2.5 Ciclo de vida de un contenedor](#25-ciclo-de-vida-de-un-contenedor)
+  - [2.6 Exponiendo contenedores](#26-exponiendo-contenedores)
 - [3. Datos en Docker](#3-datos-en-docker)
-
+  - [3.1 Bind mounts](#31-bind-mounts)
+  - [3.2 Volúmenes](#32-volúmenes)
+  - [3.3 Insertar y extraer archivos de un contenedor](#33-insertar-y-extraer-archivos-de-un-contenedor)
 - [4. Imágenes](#4-imágenes)
-
+  - [4.1 Conceptos fundamentales de Docker: Imágenes](#41-conceptos-fundamentales-de-docker--imágenes)
+  - [4.2 Construyendo una imagen propia](#42-construyendo-una-imagen-propia)
+  - [4.3 El sistema de capas](#43-el-sistema-de-capas)
 - [5. Docker como herramienta de desarrollo](#5-docker-como-herramienta-de-desarrollo)
-
+  - [5.1 Usando Docker para desarrollar aplicaciones](#51-usando-docker-para-desarrollar-aplicaciones)
+  - [5.2 Aprovechando el caché de capas para estructurar correctamente tus imágenes](#52-aprovechando-el-caché-de-capas-para-estructurar-correctamente-tus-imágenes)
+  - [5.25 EXTRA: Creando un contenedor FLASK-PYTHON](#525-extra--creando-un-contenedor-flask-python)
+  - [5.3 Docker networking: Colaboración entre contenedores](#53-docker-networking--colaboración-entre-contenedores)
 - [6. Docker compose](#6-docker-compose)
-
+  - [6.1 Docker Compose: La herramienta todo en uno](#61-docker-compose--la-herramienta-todo-en-uno)
+  - [6.2 Subcomandos de Docker Compose](#62-subcomandos-de-docker-compose)
+  - [6.3 Docker Compose como herramienta de desarrollo](#63-docker-compose-como-herramienta-de-desarrollo)
+  - [6.4 Compose en equipo: override](#64-compose-en-equipo--override)
 - [7. Docker Avanzado](#7-docker-avanzado)
-
+  - [7.1 Administrando tu ambiente de Docker](#71-administrando-tu-ambiente-de-docker)
+  - [7.2 Deteniendo contenedores correctamente: SHELL vs EXEC](#72-deteniendo-contenedores-correctamente--shell-vs-exec)
+  - [7.3 Contenedores ejecutables: ENTRYPOINT vs CMD](#73-contenedores-ejecutables--entrypoint-vs-cmd)
+  - [7.4 El contexto de build](#74-el-contexto-de-build)
+  - [7.5 Multi-stage build](#75-multi-stage-build)
+  - [7.6 Docker-in-Docker](#76-docker-in-docker)
 
 # 1. Introducción
-
+Este capítulo contiene:
+- [1.1 Todo lo que aprenderás sobre Docker](#11-todo-lo-que-aprenderás-sobre-docker)
+- [1.2 Las treas áreas en el desarrollo de software profesional](#12-las-treas-áreas-en-el-desarrollo-de-software-profesional)
+- [1.3 Virtualización](#13-virtualización)
+- [1.4 Preparando tu entorno de trabajo](#14-preparando-tu-entorno-de-trabajo)
+- [1.5 Play with Docker](#15-play-with-docker)
+- [1.6 Qué es y cómo funciona Docker](#16-qué-es-y-cómo-funciona-docker)
 ## 1.1 Todo lo que aprenderás sobre Docker
 
 **¿Qué es docker?**
@@ -265,6 +296,13 @@ El Docker Engine es la aplicación cliente-servidor que implementa Docker. Esta 
 Los registros Docker (Docker Registry) son los que almacenan imágenes Docker. El Docker Hub es un registro público que almacena múltiples imágenes, algunas de ellas certificadas por Docker.
 
 # 2. Contenedores
+Este capítulo contiene:
+- [2.1 Primeros pasos: Hola mundo](#21-primeros-pasos--hola-mundo)
+- [2.2 Conceptos fundamentales de Docker: contenedores](#22-conceptos-fundamentales-de-docker--contenedores)
+- [2.3 Comprendiendo el estado de Docker](#23-comprendiendo-el-estado-de-docker)
+- [2.4 El modo interactivo](#24-el-modo-interactivo)
+- [2.5 Ciclo de vida de un contenedor](#25-ciclo-de-vida-de-un-contenedor)
+- [2.6 Exponiendo contenedores](#26-exponiendo-contenedores)
 
 ## 2.1 Primeros pasos: Hola mundo
 
@@ -757,7 +795,7 @@ $ sudo docker logs --tail 10 -f proxy
 
 Respuesta esperada:
 
-```commandline
+```
 172.17.0.1 - - [19/Feb/2023:04:29:18 +0000] "GET / HTTP/1.1" 200 615 "-" "Mozilla/5.0 (X11; Linux x86_64) 
 AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36" "-"
 2023/02/19 04:29:18 [error] 30#30: *2 open() "/usr/share/nginx/html/favicon.ico" failed (2: No such file or directory), 
@@ -790,7 +828,10 @@ ahora me da un error de que no se puede acceder a este sitio.
 Bastaría con volver a iniciar el contenedor con `docker start proxy` para volver a utilizar nginx.
 
 # 3. Datos en Docker
-
+Este capítulo contiene:
+- [3.1 Bind mounts](#31-bind-mounts)
+- [3.2 Volúmenes](#32-volúmenes)
+- [3.3 Insertar y extraer archivos de un contenedor](#33-insertar-y-extraer-archivos-de-un-contenedor)
 
 
 ## 3.1 Bind mounts
@@ -1284,7 +1325,7 @@ Ahora hagamos un ejercicio rápido de transferencia de archivos entre máquina l
 
 # 4. Imágenes
 
-Esta sección cuenta con las siguientes clases:
+Este capítulo contiene:
 
 - [4.1 Conceptos fundamentales de Docker: Imágenes](#41-conceptos-fundamentales-de-docker--imágenes)
 
@@ -1549,7 +1590,7 @@ todas las operaciones se hagan desde un contenedor.
 
 # 5. Docker como herramienta de desarrollo
 
-Esta sección cuenta con las siguientes clases:
+Este capítulo contiene:
 
 - [5.1 Usando Docker para desarrollar aplicaciones](#51-usando-docker-para-desarrollar-aplicaciones)
 
@@ -2265,7 +2306,11 @@ Si nos dirigimos a:
 [Éxito total, Éxito Rotundo](https://platzi.com/clases/2066-docker/32861-docker-networking-colaboracion-entre-contenedores/?time=540)
 
 # 6. Docker compose
-
+Este capítulo contiene:
+- [6.1 Docker Compose: La herramienta todo en uno](#61-docker-compose--la-herramienta-todo-en-uno)
+- [6.2 Subcomandos de Docker Compose](#62-subcomandos-de-docker-compose)
+- [6.3 Docker Compose como herramienta de desarrollo](#63-docker-compose-como-herramienta-de-desarrollo)
+- [6.4 Compose en equipo: override](#64-compose-en-equipo--override)
 ## 6.1 Docker Compose: La herramienta todo en uno
 
 Docker Compose es una herramienta que permite simplificar el uso de Docker. A partir de archivos YAML es más sencillo crear contendores, conectarlos, habilitar puertos, volúmenes, etc.
@@ -2803,7 +2848,13 @@ docker compose down
 ```
 
 # 7. Docker Avanzado
-
+Este capítulo contiene:
+- [7.1 Administrando tu ambiente de Docker](#71-administrando-tu-ambiente-de-docker)
+- [7.2 Deteniendo contenedores correctamente: SHELL vs EXEC](#72-deteniendo-contenedores-correctamente--shell-vs-exec)
+- [7.3 Contenedores ejecutables: ENTRYPOINT vs CMD](#73-contenedores-ejecutables--entrypoint-vs-cmd)
+- [7.4 El contexto de build](#74-el-contexto-de-build)
+- [7.5 Multi-stage build](#75-multi-stage-build)
+- [7.6 Docker-in-Docker](#76-docker-in-docker)
 ## 7.1 Administrando tu ambiente de Docker
 
 En esta clase mostraremos los comandos más utilizados para eliminar: 
