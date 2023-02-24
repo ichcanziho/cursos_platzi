@@ -2248,17 +2248,543 @@ Si nos dirigimos a:
 
 [Éxito total, Éxito Rotundo](https://platzi.com/clases/2066-docker/32861-docker-networking-colaboracion-entre-contenedores/?time=540)
 
-
-
 # 6. Docker compose
 
 ## 6.1 Docker Compose: La herramienta todo en uno
 
+Docker Compose es una herramienta que permite simplificar el uso de Docker. A partir de archivos YAML es más sencillo crear contendores, conectarlos, habilitar puertos, volúmenes, etc.
+
+Con Compose puedes crear diferentes contenedores y al mismo tiempo, en cada contenedor, diferentes servicios, unirlos a un volumen común, iniciarlos y apagarlos, etc. Es un componente fundamental para poder construir aplicaciones y microservicios.
+
+Docker Compose te permite mediante archivos YAML, poder instruir al Docker Engine a realizar tareas, programáticamente. Y esta es la clave, la facilidad para dar una serie de instrucciones, y luego repetirlas en diferentes ambientes.
+
+Veamos nuestro archivo [docker-compose.yml](docker_platzi/docker/docker-compose.yml)
+
+```yaml
+# Esto es la versión del compose-file
+# Cuáles son las features que permite o soporta docker-compose
+version: "3.8"
+# estos son los distintos componentes que tiene nuestra aplicación que necesita para poder ejecutarse correctamente
+services:
+  # Un servicio compose es similar a un contenedor, pero ofrece más ventajas. Un servicio puede tener uno o más contenedores
+  # de la misma imagen 
+  app:  # Este es el nombre del servicio que va a correr a nuestra aplicación
+    image: platziapp  # Esta es la imagen que vamos a usar para el contenedor del servicio app 
+    environment:  # Nos permite definir variables de entorno
+      MONGO_URL: "mongodb://db:27017/test"  # observemos que ://db corresponde con el nombre del servicio db:
+    depends_on:  # Este servicio a su vez depende de otro servicio
+      - db  # el servicio db definido más abajo
+    ports:  # expone el puerto 3000 de nuestro contenedor app en el puerto 3000 de nuestra máquina anfitriona
+      - "3000:3000"
+
+  db:  # Este es el servicio que va a correr a nuestra base de datos
+    image: mongo
+  # db es el NOMBRE DEL SERVICIO NO necesariamente el nombre del CONTENEDOR, esto es muy cómodo a futuro cuando levantemos el compose
+```
+
+Veamos que aplicaciones tenemos corriendo:
+```bash
+docker ps
+```
+Respuesta esperada:
+```commandline
+CONTAINER ID   IMAGE       COMMAND                  CREATED             STATUS             PORTS                                       NAMES
+0d78ce99a6b5   platziapp   "docker-entrypoint.s…"   52 minutes ago      Up 52 minutes      0.0.0.0:3000->3000/tcp, :::3000->3000/tcp   app
+7936407ea0b8   mongo       "docker-entrypoint.s…"   About an hour ago   Up About an hour   27017/tcp                                   mongodb
+```
+
+> ## Nota: 
+> Recordemos que NO puede haber dos procesos escuchando en el mismo puerto
+
+Eliminemos nuestros contenedores:
+
+```bash
+docker rm -f $(docker ps -aq)
+docker ps
+```
+Respuesta esperada:
+```commandline
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+```
+
+Corriendo el docker-compose.yml
+
+```bash
+docker compose up
+```
+
+Respuesta esperada: (la respuesta es parcial)
+
+```commandline
+docker-db-1   | {"t":{"$date":"2023-02-23T00:25:41.931+00:00"},"s":"I",  "c":"INDEX",    "id":20345,   "ctx":"LogicalSessionCacheRefresh","msg":"Index build: done building","attr":{"buildUUID":null,"collectionUUID":{"uuid":{"$uuid":"e0d14b35-c48a-4528-9648-02c3e8e72211"}},"namespace":"config.system.sessions","index":"_id_","ident":"index-5--3819542493820533034","collectionIdent":"collection-4--3819542493820533034","commitTimestamp":null}}
+docker-db-1   | {"t":{"$date":"2023-02-23T00:25:41.931+00:00"},"s":"I",  "c":"INDEX",    "id":20345,   "ctx":"LogicalSessionCacheRefresh","msg":"Index build: done building","attr":{"buildUUID":null,"collectionUUID":{"uuid":{"$uuid":"e0d14b35-c48a-4528-9648-02c3e8e72211"}},"namespace":"config.system.sessions","index":"lsidTTLIndex","ident":"index-6--3819542493820533034","collectionIdent":"collection-4--3819542493820533034","commitTimestamp":null}}
+docker-app-1  | [nodemon] 1.18.6
+docker-app-1  | [nodemon] to restart at any time, enter `rs`
+docker-app-1  | [nodemon] watching: *.*
+docker-app-1  | [nodemon] starting `node index.js`
+docker-app-1  | Server listening on port 3000!
+```
+
+![exito](imgs/exito_total.png)
+
+Salimos con ctrl+c
+
+Respuesta esperada:
+
+```commandline
+^CGracefully stopping... (press Ctrl+C again to force)
+Aborting on container exit...
+[+] Running 2/2
+ ⠿ Container docker-app-1  Stopped                                                                                                                                                                                                                                                                                  0.4s
+ ⠿ Container docker-db-1   Stopped                                                                                                                                                                                                                                                                                  0.3s
+canceled
+```
+
+Al salir nuestros contenedores se detienen:
+
+```bash
+docker ps -a
+```
+Respuesta esperada:
+```commandline
+CONTAINER ID   IMAGE       COMMAND                  CREATED          STATUS                            PORTS     NAMES
+9532161dcf4f   platziapp   "docker-entrypoint.s…"   16 minutes ago   Exited (143) About a minute ago             docker-app-1
+a90274c5c326   mongo       "docker-entrypoint.s…"   16 minutes ago   Exited (0) About a minute ago               docker-db-1
+```
+Pero también lo podemos correr en forma detached
+
+```bash
+docker compose up -d
+```
+Respuesta esperada:
+```commandline
+[+] Running 2/2
+ ⠿ Container docker-db-1   Started                                                                                                                                                                                                                                                                                  0.3s
+ ⠿ Container docker-app-1  Started  
+```
+Y entonces los contenedores se mantienen corriendo:
+```bash
+docker ps
+```
+Respuesta esperada:
+```commandline
+CONTAINER ID   IMAGE       COMMAND                  CREATED          STATUS         PORTS                                       NAMES
+9532161dcf4f   platziapp   "docker-entrypoint.s…"   19 minutes ago   Up 7 seconds   0.0.0.0:3000->3000/tcp, :::3000->3000/tcp   docker-app-1
+a90274c5c326   mongo       "docker-entrypoint.s…"   19 minutes ago   Up 7 seconds   27017/tcp                                   docker-db-1
+```
+
+
 ## 6.2 Subcomandos de Docker Compose
+
+Veamos nuestra lista de contenedores en docker compose
+
+```bash
+docker compose ps
+```
+
+Respuesta esperada:
+
+```commandline
+NAME                IMAGE               COMMAND                  SERVICE             CREATED             STATUS              PORTS
+docker-app-1        platziapp           "docker-entrypoint.s…"   app                 23 minutes ago      Up 4 minutes        0.0.0.0:3000->3000/tcp, :::3000->3000/tcp
+docker-db-1         mongo               "docker-entrypoint.s…"   db                  23 minutes ago      Up 4 minutes        27017/tcp
+```
+El nombre se genera automáticamente, la palabra `docker` viene dada porque la carpeta donde se encuentra el archivo `docker-compose.yml` se llama `docker`.
+
+Para este compose, docker le genera automáticamente un network, de la misma forma tomará el nombre de la carpeta `docker` como prefijo para la red.
+
+```bash
+docker network ls
+```
+Respuesta esperada:
+```commandline
+NETWORK ID     NAME             DRIVER    SCOPE
+2bcf07cca2ed   bridge           bridge    local
+d6fb68341330   docker_default   bridge    local
+74a4aacedd1f   host             host      local
+51bd06b10ae5   none             null      local
+035f6a90d019   platzinet        bridge    local
+```
+La que se creó fue: `docker_default`
+
+Si inspeccionamos la red:
+
+```bash
+docker network inspect docker_default
+```
+Veremos que contiene los contenedores esperados:
+```commandline
+  "Containers": {
+            "9532161dcf4f255113a06493c66a366f609b30e817d47200617c3b8245d06fa8": {
+                "Name": "docker-app-1",
+                "EndpointID": "801b37d0fd6f4c7a6183d0efcf4ab140baed3852852fde97f55152bcab25c5a7",
+                "MacAddress": "02:42:ac:13:00:03",
+                "IPv4Address": "172.19.0.3/16",
+                "IPv6Address": ""
+            },
+            "a90274c5c32658576792cef53f62b6398791ce80098314efa30fca5d455a3550": {
+                "Name": "docker-db-1",
+                "EndpointID": "a59c986e1f6fcc0aefe4bb3b7c3aaa05db8635ac7c9ac6e8d4d30c3d90514b48",
+                "MacAddress": "02:42:ac:13:00:02",
+                "IPv4Address": "172.19.0.2/16",
+                "IPv6Address": ""
+            }
+        }
+```
+
+El docker compose también me permite utilizar las herramientas de logs, puedo apuntar a un servicio en específico del compose 
+de la siguiente manera:
+```bash
+docker compose logs app
+```
+Aquí estoy apuntando únicamente al servicio `app` si quito el nombre del servicio entonces me dará todos los logs.
+Respuesta esperada:
+```commandline
+docker-app-1  | [nodemon] 1.18.6
+docker-app-1  | [nodemon] to restart at any time, enter `rs`
+docker-app-1  | [nodemon] watching: *.*
+docker-app-1  | [nodemon] starting `node index.js`
+docker-app-1  | Server listening on port 3000!
+docker-app-1  | [nodemon] 1.18.6
+docker-app-1  | [nodemon] to restart at any time, enter `rs`
+docker-app-1  | [nodemon] watching: *.*
+docker-app-1  | [nodemon] starting `node index.js`
+docker-app-1  | Server listening on port 3000!
+```
+
+También puedo utilizar los comandos que hemos visto anteriormente como `exec` pero una ventaja que tiene usar compose
+es que NO es necesario indicar el parámetro `--it` ya que automáticamente entra en ese modo.
+
+```bash
+docker compose exec app bash
+```
+Puedo ver todos los archivos porque estoy corriendo una terminal bash:
+
+```bash
+ls -lac
+```
+Respuesta esperada:
+```commandline
+total 152
+drwxr-xr-x   1 root root   4096 Feb 22 01:37 .
+drwxr-xr-x   1 root root   4096 Feb 22 01:37 ..
+-rw-rw-r--   1 root root   1072 Feb 22 01:37 LICENSE
+drwxrwxr-x   4 root root   4096 Feb 22 01:37 avanzado
+drwxrwxr-x   2 root root   4096 Feb 22 01:37 build
+-rw-rw-r--   1 root root    196 Feb 22 01:37 docker-compose.yml
+-rw-rw-r--   1 root root    561 Feb 22 01:37 index.js
+drwxr-xr-x 243 root root  12288 Feb 22 01:37 node_modules
+-rw-rw-r--   1 root root 101649 Feb 22 01:37 package-lock.json
+-rw-rw-r--   1 root root    662 Feb 22 01:37 package.json
+drwxrwxr-x   2 root root   4096 Feb 22 01:37 test
+```
+Y de igual forma salgo con el comando `exit`
+
+Y finalmente para detener el compose y borrar y limpiar todos los contenedores hacemos un `compose down`
+```bash
+docker compose down
+```
+Respuesta esperada:
+```commandline
+[+] Running 3/3
+ ⠿ Container docker-app-1  Removed                                                                                                                                                                                                                                                                                  0.4s
+ ⠿ Container docker-db-1   Removed                                                                                                                                                                                                                                                                                  0.3s
+ ⠿ Network docker_default  Removed 
+```
+Verificamos que todo este limpio:
+```bash
+docker compose ps
+```
+Respuesta esperada:
+```commandline
+NAME                IMAGE               COMMAND             SERVICE             CREATED             STATUS              PORTS
+```
+
+> ## Información adicional de docker compose:
+> 
+> (docker-compose)
+> - version: debe declararse
+> - services: nombre del servicio (describe una parte de la aplicación) un servicio puede tener uno o más contenedores de la misma imagen
+> - depends_on: los contenedores de este servicio dependen de… (primero debe ejecutar el servicio)
+> - ports: puertos expuestos del servicio (host:container)
+> - environment: Variables de entorno
+> - env_file: Archivo con variables de entorno
 
 ## 6.3 Docker Compose como herramienta de desarrollo
 
+En esta clase veremos como desarrollar aplicaciones cómodamente con docker compose.
+Ahora veremos como recrear lo que vimos en [Aprovecha el cache de capas](#52-aprovechando-el-caché-de-capas-para-estructurar-correctamente-tus-imágenes)
+y la clase de [Volúmenes](#32-volúmenes) para tener un código perfecto para un ambiente de `desarrollo` en el cuál si yo cambio
+un valor en el archivo `index.js` automáticamente reinicie el servidor de `node` y me permita ver los cambios sin tener que estar
+construyendo la imagen del `docker compose`.
+
+Hasta este momento el archivo [docker-compose.yml](docker_platzi/docker/docker-compose.yml) es el siguiente:
+
+```yaml
+version: "3.8"
+
+services:
+  app:
+    image: platziapp
+    environment:
+      MONGO_URL: "mongodb://db:27017/test"
+    depends_on:
+      - db
+    ports:
+      - "3000:3000"
+
+  db:
+    image: mongo
+```
+Sin embargo, vamos a modificarlo para tener una versión mucho más inteligente:
+
+```yaml
+version: "3.8"
+
+services:
+  app:
+    # El objetivo será NO solamente usar una imagen ya hecha sino incluso construirla desde el compose
+    container_name: platziapp2  # YO puedo elegir el nombre del contenedor del servicio app
+    build: .  # con este comando se va a constuir el contenedor utilizando el Dockerfile presente
+    environment:
+      MONGO_URL: "mongodb://db:27017/test"
+    depends_on:
+      - db
+    ports:
+      - "3000:3000"
+    # ESTO al igual que en los contenedores simples, me permite crear un volúmen para compartir datos entre mi máquina real y
+    # los datos del contenedor
+    volumes:
+      - .:/usr/src  # aquí estoy haciendo un puente entre TODO lo que hay en mi máquina local . y todo lo que hay en la máquina
+                    # del contenedor
+      - /usr/src/node_modules  # sin embargo, en mi máquina local NO tengo instalado node, entonces NO existe la carpeta node_modules
+                               # entonces la puedo IGNORAR para que no se comparta entre el contenedor y mi carpeta
+    # El parámetro command nos permite ejecutar comandos bash desde el yml.
+    command: npx nodemon index.js  # Este comando ya lo habíamos utilizado antes en el dockerfile y este nos permitía reiniciar
+                                   # el servidor de node cada que este notase un cambio en el código
+  db:
+    image: mongo
+```
+
+Recargamos el `compose`:
+
+```bash
+docker compose up -d
+```
+
+Respuesta esperada:
+```commandline
+[+] Building 1.1s (11/11) FINISHED                                                                                                                                                                                                                                                                                       
+ => [internal] load .dockerignore                                                                                                                                                                                                                                                                                   0.0s
+ => => transferring context: 133B                                                                                                                                                                                                                                                                                   0.0s
+ => [internal] load build definition from Dockerfile                                                                                                                                                                                                                                                                0.1s
+ => => transferring dockerfile: 207B                                                                                                                                                                                                                                                                                0.0s
+ => [internal] load metadata for docker.io/library/node:12                                                                                                                                                                                                                                                          0.9s
+ => [auth] library/node:pull token for registry-1.docker.io                                                                                                                                                                                                                                                         0.0s
+ => [internal] load build context                                                                                                                                                                                                                                                                                   0.0s
+ => => transferring context: 105.26kB                                                                                                                                                                                                                                                                               0.0s
+ => [1/5] FROM docker.io/library/node:12@sha256:01627afeb110b3054ba4a1405541ca095c8bfca1cb6f2be9479c767a2711879e                                                                                                                                                                                                    0.0s
+ => CACHED [2/5] COPY [package.json, package-lock.json, /usr/src/]                                                                                                                                                                                                                                                  0.0s
+ => CACHED [3/5] WORKDIR /usr/src                                                                                                                                                                                                                                                                                   0.0s
+ => CACHED [4/5] RUN npm install                                                                                                                                                                                                                                                                                    0.0s
+ => [5/5] COPY [., /usr/src/]                                                                                                                                                                                                                                                                                       0.1s
+ => exporting to image                                                                                                                                                                                                                                                                                              0.1s
+ => => exporting layers                                                                                                                                                                                                                                                                                             0.1s
+ => => writing image sha256:bc214885f1c17759148882ef08b48c9753608fccf725037f63acfece545699bd                                                                                                                                                                                                                        0.0s
+ => => naming to docker.io/library/docker-app                                                                                                                                                                                                                                                                       0.0s
+[+] Running 3/3
+ ⠿ Network docker_default  Created                                                                                                                                                                                                                                                                                  0.1s
+ ⠿ Container docker-db-1   Started                                                                                                                                                                                                                                                                                  0.6s
+ ⠿ Container platziapp2    Started    
+```
+Y puedo ver como mi compose se encuentra activo:
+```bash
+docker compose ps
+```
+Respuesta esperada:
+```commandline
+NAME                IMAGE               COMMAND                  SERVICE             CREATED              STATUS              PORTS
+docker-db-1         mongo               "docker-entrypoint.s…"   db                  About a minute ago   Up About a minute   27017/tcp
+platziapp2          docker-app          "docker-entrypoint.s…"   app                 About a minute ago   Up About a minute   0.0.0.0:3000->3000/tcp, :::3000->3000/tcp
+```
+
+FELICIDADES. Ahora podemos cambiar los archivos en mi computadora local y se verá reflejado en los archivos del compose y adicionalmente
+el servidor se recargará automáticamente permitiéndome ver los cambios de inmediato.
+
 ## 6.4 Compose en equipo: override
+
+**docker-compose.override.yml** es un archivo que se encarga de sobreescribir tu configuración de docker-compose.yml , se puede usar para tener segura tu configuración y para no guardar los cambios en el repositorio de git.
+Un equivalente podría ser los archivos de declaración de variables de entorno, donde hay un archivo .env declarando su nombre y valor, y hay una copia .env.example con solo las variables sin valor. En .gitignore se declara que los cambios en .env no serán guardados, pero mandamos el archivo de ejemplo al repositorio.
+
+**Contexto del archivo.override.yml**
+
+El archivo.yml que utiliza docker compose normalmente iría versionando, pero surge un problema, el problema es que a veces se realizan cambios en el archivo.yml (archivo base) para probar ciertas cosas, y luego se desea hacer commit en el proyecto sin que se commitee los cambios en el archivo.yml (archivo base). La solución que propone docker es utilizar un archivo.override.yml que contenga esas variaciones del archivo.yml (archivo base). Al momento de ejecutar docker-compose, este se da cuenta qué, en nuestro archivo.override.yml va a sustituir o tomar ciertas configuraciones de nuestro archivo.yml (archivo base)
+
+**¿Qué es un archivo.override.yml?**
+
+Es un archivo de tipo compose.file (archivo.yml) que puede realizar cambios a nuestro archivo compuse original.
+¿Cómo funciona un archiv.override.yml?
+Por ejemplo: se puede agregar variables de entorno en ambos archivo y lo que hará docker-compose es una especie de merge, como ocurre en git, es decir creará ambas variables de entorno. Es decir agregará se puede realizar un build también mientras en el archivo base
+
+**Funcionamiento de los port**
+
+En el caso de crear los puertos, si es recomendable hacerlo solamente en nuestro archivo.yml (archivo base). Esto se debe a que los puertos se procesan en estapas distintas
+
+**Funcionamiento de depend_on:**
+
+Este caso también lo tomas del archivo.yml (archivo base)
+
+### Pasos para configurar un archivo.override.yml con el ejemplo anterior
+
+1. Crear el archivo con el nombre docker-compose.override.yml
+2. Verificar que el archivo existe
+3. Configurar el anterior archivo base como estaba e introducir lo siguiente:
+   - Los puertos (port) y las dependencias (depend_on) deberían ir en el archivo base y el archivo override los tomará de allí
+   - Si declaramos variables de entorno (environment) tanto en nuestro archivo base (docker-compose.yml) y en nuestro archivo override (docker-compose.override.yml), lo que hará docker compose es que tomará las dos variables de entornos y las creara.
+   - Otro punto importante es que tenemos en nuestro archivo base (doker-compose) un servicio con image y en un archivo override (docker-compose-override) un build. El nombre que tomará nuestro servicio será el nombre de la carpeta donde está y el nombre del servicio.
+4. Luego levantar los servicios
+5. Realizar la prueba en el navegador
+
+Ejecución de los pasos para configurar un archivo.override.yml con el ejemplo anterior
+
+Regresando el `docker-compose.yml` a su estado base:
+
+```yaml
+version: "3.8"
+
+services:
+  app:
+    image: platziapp
+    environment:
+      MONGO_URL: "mongodb://db:27017/test"
+    depends_on:
+      - db
+    ports:
+      - "3000:3000"
+
+  db:
+    image: mongo
+```
+Creemos nuestro archivo `override`:
+
+Una versión ligeramente modificada que cumpla con nuestros objetivos particulares de la sesión que estamos manejando actualmente.
+Por ejemplo si en local a nosotros nos interesa construir nuestro contenedor desde un Dockerfile en lugar de usar una imagen previamente
+generada. 
+
+```bash
+touch docker-compose.override.yml
+```
+```yaml
+version: "3.8"
+
+services:
+  app:
+    build: .
+    environment: 
+      UNA_VARIABLE: "HOLA MUNDO!"
+```
+
+Esta versión sobreescribirá a la primera, añadiendo información y compartiendo la de la base original, en este caso
+no necesito en el override escribir los `depends_on` o `ports` e incluso la otra imagen `db` porque como en esta versión
+también las voy a utilizar, entonces no tengo necesidad de volver a escribir las cosas que NO están cambiando.
+
+Vuelvo a construir el compose:
+```bash
+docker compose up -d
+```
+
+Respuesta esperada:
+
+```commandline
+[+] Running 3/3
+ ⠿ Container docker-db-1   Started                                                                                                                                                                                                                                                                                  0.4s
+ ⠿ Container platziapp2    Recreated                                                                                                                                                                                                                                                                                0.1s
+ ⠿ Container docker-app-1  Started  
+```
+
+Para estar seguros de que el compose se hizo build desde el override podemos inspeccionar a la aplicación:
+
+```bash
+docker inspect --format '{{.Config.Env}}' docker-app-1
+```
+Respuesta esperada:
+```commandline
+[MONGO_URL=mongodb://db:27017/test UNA_VARIABLE=HOLA MUNDO! PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin NODE_VERSION=12.22.12 YARN_VERSION=1.22.18]
+```
+Y vemos como tiene un variable de entorno llamada `UNA_VARIABLE` algo que SOLO está presente en el override.
+
+De esta manera `override` me permite trabajar más cómodamente en equipo, puesto que puedo añadir este archivo a un .gitignore
+y evitar que los entornos de mis compañeros de trabajo se estén modificando constantemente cuando yo altere este archivo.
+
+### Escalando contenedores:
+
+Imaginemos que Quiero crear dos contenedores de este proyecto, sería tan sencillo como:
+
+```bash
+docker compose up -d --scale app=2
+```
+Sin embargo, voy a obtener el siguiente error:
+```commandline
+[+] Running 2/3
+ ⠿ Container docker-db-1   Running                                                                                                                                                                                                                                                                                  0.0s
+ ⠿ Container docker-app-2  Started                                                                                                                                                                                                                                                                                  0.8s
+ ⠿ Container docker-app-1  Starting                                                                                                                                                                                                                                                                                 1.0s
+Error response from daemon: driver failed programming external connectivity on endpoint docker-app-1 (a81fd20671dfc5864d685df44d145f11d934a54ba890b2852fb036cf26c591c5): Bind for 0.0.0.0:3000 failed: port is already allocated
+```
+
+Esto se debe a que en mi archivo principal de configuración `docker-compose.yml` solo tengo un puerto disponible en mis puertos locales
+que quiero hacer puente con el puerto del contenedor:
+
+```yaml
+    ports:
+      - "3000:3000"
+```
+
+Entonces cuando docker intenta construir el segundo contenedor este ya no se puede generar porque ya tiene el puerto utilizado, 
+esto es tan simple como crear un rango de puertos disponibles de mi local apuntando al del contenedor de la siguiente manera.
+
+```yaml
+    ports:
+      - "3000-3001:3000"
+```
+
+Ahora detenemos el contenedor pasado y volvemos a construir la versión modificada:
+
+```yaml
+docker compose down
+docker compose up -d --scale app=2
+```
+
+Respuesta esperada:
+
+```commandline
+[+] Running 4/4
+ ⠿ Container docker-app-1  Removed                                                                                                                                                                                                                                                                                  0.0s
+ ⠿ Container docker-app-2  Removed                                                                                                                                                                                                                                                                                  0.3s
+ ⠿ Container docker-db-1   Removed                                                                                                                                                                                                                                                                                  0.3s
+ ⠿ Network docker_default  Removed  
+ 
+ [+] Running 4/4
+ ⠿ Network docker_default  Created                                                                                                                                                                                                                                                                                  0.1s
+ ⠿ Container docker-db-1   Started                                                                                                                                                                                                                                                                                  0.5s
+ ⠿ Container docker-app-2  Started                                                                                                                                                                                                                                                                                  0.7s
+ ⠿ Container docker-app-1  Started  
+```
+Y ahora tengo dos contenedores en linea uno en el puerto 3000 y otro en el 3001:
+```bash
+docker compose ps
+```
+Respuesta esperada:
+```commandline
+NAME                IMAGE               COMMAND                  SERVICE             CREATED              STATUS              PORTS
+docker-app-1        platziapp           "docker-entrypoint.s…"   app                 About a minute ago   Up About a minute   0.0.0.0:3001->3000/tcp, :::3001->3000/tcp
+docker-app-2        platziapp           "docker-entrypoint.s…"   app                 About a minute ago   Up About a minute   0.0.0.0:3000->3000/tcp, :::3000->3000/tcp
+docker-db-1         mongo               "docker-entrypoint.s…"   db                  About a minute ago   Up About a minute   27017/tcp
+```
+Limpiamos todo:
+```commandline
+docker compose down
+```
 
 # 7. Docker Avanzado
 
