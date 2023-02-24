@@ -2790,12 +2790,289 @@ docker compose down
 
 ## 7.1 Administrando tu ambiente de Docker
 
+En esta clase mostraremos los comandos más utilizados para eliminar: 
+- imagenes
+- contenedores
+- volumenes
+- networks
+
+Con el fin de tener una limpieza general del sistema.
+
+Elimina todos los contenedores sin usar:
+```bash
+docker container prune
+```
+Elimina todos los contenedores:
+```bash
+docker rm -f $(docker ps -aq)
+```
+Elimina todos los volúmenes:
+```bash
+docker volume prune
+```
+Elimina todas las redes
+```bash
+docker network prune
+```
+Versión que elimina todo menos las imagenes:
+```bash
+docker system prune
+```
+Elimina las imagenes:
+```bash
+docker image rm -f $(docker image ls -q)
+```
+Limitar el consumo de RAM en un contenedor
+```bash
+docker run -d --name <container_name> --mormoy <quantity> <image_name>
+```
+Ver el consumo de los contenedores
+```bash
+docker stats
+```
 ## 7.2 Deteniendo contenedores correctamente: SHELL vs EXEC
+
+Al estar activo o recién crear un contendor, este debería estar ejecutando un proceso principal o main process para mantenerse en funcionamiento. En caso de que el main process se detenga el contendor debería dejar de funcionar.
+
+Docker tiene una manera de manejar los procesos de los contenedores de manera estándar, cuando se manda detener el contenedor con la instrucción
+docker stop <name-container>; con esta instrucción Docker manda una señal estándar de linux llamada SIGTERM al proceso; después de un tiempo el proceso deberá detenerse; en caso de no detenerse el proceso enviará otra señal llamada SIGKILL; con esta señal se garantiza que el proceso se ha terminado de manera forzada.
+
+Existen problemas en la terminación de procesos ejecutados en los contenedores, una de las causas está asociado a ¿Cómo se debería declarar en Dockerfile el proceso a ejecutar?
+
+digamos que tenemos estos dos archivos configurados de la siguiente manera:
+
+[Dockerfile](docker_platzi/docker/avanzado/loop/Dockerfile)
+```doctest
+FROM ubuntu:trusty
+COPY ["loop.sh", "/"]
+CMD /loop.sh
+```
+[loop.sh](docker_platzi/docker/avanzado/loop/loop.sh)
+```doctest
+#!/usr/bin/env bash
+trap 'exit 0' SIGTERM
+while true; do :; done
+```
+
+El primero es el dockerfile; sirve para construir nuestra imagen y el segundo es el archivo bash que se ejecutará como un
+main process o proceso principal del contenedor. Es importante destacar que la línea de CMD ejecuta nuestro archivo bash, 
+a través de un shell, esta forma de expresar esta línea se conoce como shell form y esto genera que al momento de detener 
+un contenedor que esté ejecutando un proceso por shell form necesariamente tendrá que usar un SIGKILL. Para evitar esto, 
+el CMD debe ejecutar nuestro main process de form exec form, es decir nuestro archivo debe estar configurado de esta manera.
+
+```doctest
+FROM ubuntu:trusty
+COPY ["loop.sh", "/"]
+CMD ["/loop.sh"]
+```
+
+La idea de que el archivo esté configurado de esta manera es que de tiempo a que el contenedor procese las solicitudes 
+restantes y pueda hacer un Great full shutdown. Otra nota importante es que los códigos de salida mayor a 128 es el 
+resultado de una salida por un código de excepción.
+
+Comandos utilizados en clases
+
+```bash
+cd docker/avanzado/loop
+```
+
+Creamos una imagen
+
+```bash
+docker build -t loop .
+```
+Respuesta esperada:
+```commandline
+ => [2/2] COPY [loop.sh, /]                                                                                                                                                                                                                                                      0.1s
+ => exporting to image                                                                                                                                                                                                                                                           0.1s
+ => => exporting layers                                                                                                                                                                                                                                                          0.0s
+ => => writing image sha256:6c4eb1a2bf4dd920603ca34f367b94e2a754e7682d39b464856d82e3db9b9ddd                                                                                                                                                                                     0.0s
+ => => naming to docker.io/library/loop 
+```
+Creamos un contenedor de la imagen:
+
+```bash
+docker run -d --name looper loop
+docker ps
+```
+Respuesta esperada:
+```commandline
+CONTAINER ID   IMAGE     COMMAND                 CREATED          STATUS          PORTS     NAMES
+380cd7af2c7b   loop      "/bin/sh -c /loop.sh"   26 seconds ago   Up 25 seconds             looper
+```
+Lo detenemos de forma normal:
+```bash
+docker stop looper
+docker ps -l
+```
+Esto demora un rato en denerese hasta que por fin lo termina de ejecutar. 
+```commandline
+CONTAINER ID   IMAGE     COMMAND                 CREATED              STATUS                        PORTS     NAMES
+380cd7af2c7b   loop      "/bin/sh -c /loop.sh"   About a minute ago   Exited (137) 25 seconds ago             looper
+```
+Observamos como su código de `exited` fue el 137, cualquier código encima del 128 es un código que indica que se tuvo que forzar
+la salida son sigkill
+
+Borramos el contenedor, lo volvemos a crear pero lo detenemos ahora con `kill`
+
+```bash
+docker rm looper
+docker run -d --name looper loop
+docker kill looper
+docker ps -l
+```
+Respuesta esperada:
+```commandline
+CONTAINER ID   IMAGE     COMMAND                 CREATED         STATUS                       PORTS     NAMES
+5dc9f0b0f6e1   loop      "/bin/sh -c /loop.sh"   9 seconds ago   Exited (137) 4 seconds ago             looper
+```
+Esta vez fue mucho más rapido porque directamente envio la señal de `sigkill`
+
+Observemos más detalles de como está corriendo el contenedor:
+```bash
+docker rm looper
+docker run -d --name looper loop
+docker exec looper ps -ef
+```
+Respuesta esperada:
+```commandline
+UID          PID    PPID  C STIME TTY          TIME CMD
+root           1       0  0 20:47 ?        00:00:00 /bin/sh -c /loop.sh
+root           7       1 99 20:47 ?        00:00:04 bash /loop.sh
+root           8       0  0 20:47 ?        00:00:00 ps -ef
+```
+Podemos observar como el proceso de ejecutar `/loop.sh` NO es directamente su proceso principal, esto se debe
+a que primero debe crear una instancia de shel en `/bin/sh` para eventualmente poder correr shel.
+
+Para modificar este comportamiento debemos cambiar el Docker file, especifica mente el último comando:
+
+Cambiar de `shel form`
+```doctest
+CMD /loop.sh
+```
+A su `exec form`
+```doctest
+CMD ["/loop.sh"]
+```
+Volvamos a construir la imagen y creemos el contenedor con el nuevo cambio del Dockerfile
+```bash
+docker rm -f looper
+docker build -t loop .
+docker run -d --name looper loop
+docker exec looper ps -ef
+```
+Respuesta esperada:
+```commandline
+UID          PID    PPID  C STIME TTY          TIME CMD
+root           1       0 95 20:54 ?        00:00:03 bash /loop.sh
+root           7       0  0 20:54 ?        00:00:00 ps -ef
+```
+Ahora podemos observar que su `PID` 1 es el que esperaba ver `/loop.dh`
+Entonces si detengo el contenedor:
+```bash
+docker stop looper
+docker ps -l
+```
+Respuesta esperada:
+```commandline
+CONTAINER ID   IMAGE     COMMAND      CREATED              STATUS                          PORTS     NAMES
+c5f094c793d0   loop      "/loop.sh"   About a minute ago   Exited (0) About a minute ago             looper
+```
+
+ÉXITO total ÉXITO Rotundo
 
 ## 7.3 Contenedores ejecutables: ENTRYPOINT vs CMD
 
+Vamos a images/docker/avanzado/ping
+
+En docker podemos construir images a partir de un archivo llamado dockerfile
+El archivo nos permite ejecutar un comando que se ejecutara una vez inicie nuestro contenedor
+
+¿Qué ocurre al definir un CMD sin definir un ENTRYPOINT?
+Si solo especificas un CMD, entonces Docker ejecutará dicho comando usando el ENTRYPOINT por defecto, que es `/bin/sh -c`.
+
+Respecto al `entrypoint` (punto de entrada) y `cmd` (comando), puedes sobreescribir ninguno, ambos, o solo uno de ellos.
+
+Si especificas ambos, entonces:
+
+El ENTRYPOINT especifica el ejecutable que usará el contenedor,
+y CMD se corresponde con los parámetros a usar con dicho ejecutable.
+
+Ejemplo sin entrypoint
+
+Al no contener el entrypoint toma /bin/ping y toma como parámetros los demás elementos `"-c", "3", "localhost"`; sin embargo, 
+el argumento localhost es fijo por lo que no podemos hacer ping a otros destinos
+
+El [Dockerfile](docker_platzi/docker/avanzado/ping/Dockerfile) original es el siguiente
+
+```doctest
+FROM ubuntu:trusty
+CMD ["/bin/ping", "-c", "3", "localhost"]
+```
+
+Sin embargo, vamos a modificarlo para que pueda aceptar parámetros de entrada:
+Vamos a modificarlo utilizando un `entrypoint` o un punto de entrada:
+
+```doctest
+FROM ubuntu:trusty
+ENTRYPOINT ["/bin/ping", "-c", "3", "localhost"]
+CMD ["localhost"]
+```
+
+Creamos nuestra imagen:
+```bash
+docker build -t ping .
+```
+Y vamos a construir nuestros contenedores de la siguiente manera:
+```bash
+docker run --name pinger ping
+docker rm pinger
+docker run --name pinger ping google.com
+```
+
+
 ## 7.4 El contexto de build
+Cuando hacemos un build debemos tener en cuenta los archivos que no queremos agregar a la imagen,
+para ignorar debemos usar .dockerignore
+
+Al igual que .gitignore en git, en Docker existe el .dockerignore que lista archivos o carpetas que se deben ignorar al 
+momento de tomar en cuenta el contexto de build para construir una imagen.
+
+Verse el archivo [.dockerignore](docker_platzi/docker/.dockerignore)
+
 
 ## 7.5 Multi-stage build
 
+El Dockerfile de producción contiene 2 “fases de build” que se pueden pensar como hacer 2 build seguidos, en donde al final la imagen construida contendrá lo especificado en el ultimo de los build.
+
+El primer build corre 1 test que verifica que todo funcione bien
+El segundo build construye la imagen final aprovechando el caché de las capas del primer build.
+
+Al final el 2.º build es solo una extracción de lo que nos interesa del primer build.
+
+Lo importante en este caso específico es que si el test falla, entonces el build 2 no se corre, lo que significa que la imagen no se construye.
+
+Para hacer un build específico de un Dockerfile se usa el siguiente comando:
+
+```bash
+docker build <path_to_dockerfile> <context>
+```
+
+Ejemplo:
+```bash
+docker build -t app -f build/production.Dockerfile .
+```
+
 ## 7.6 Docker-in-Docker
+
+```commandline
+DOCKER-IN-DOCKER
+#crear contenedor con docker adentro
+docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock docker:19.03.12 
+
+#ver contenedores ejecutando dentro del contenedor creado
+docker ps
+
+#Ejecutar dive en un contenedor que explora el estado de docker
+docker run --rm -it -v /var/run/docker.sock:/var/run/docker.sock -v $(which docker):/bin/docker wagoodman/dive:latest <container>
+```
