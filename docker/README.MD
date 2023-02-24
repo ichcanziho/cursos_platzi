@@ -2,19 +2,19 @@
 
 ## Tabla de contenidos:
 
-- ### [1. Introducción](#1-introducción)
+- [1. Introducción](#1-introducción)
 
-- ### [2. Contenedores](#2-contenedores)
+- [2. Contenedores](#2-contenedores)
 
-- ### [3. Datos en Docker](#3-datos-en-docker)
+- [3. Datos en Docker](#3-datos-en-docker)
 
-- ### [4. Imágenes](#4-imágenes)
+- [4. Imágenes](#4-imágenes)
 
-- ### [5. Docker como herramienta de desarrollo](#5-docker-como-herramienta-de-desarrollo)
+- [5. Docker como herramienta de desarrollo](#5-docker-como-herramienta-de-desarrollo)
 
-- ### [6. Docker compose](#6-docker-compose)
+- [6. Docker compose](#6-docker-compose)
 
-- ### [7. Docker Avanzado](#7-docker-avanzado)
+- [7. Docker Avanzado](#7-docker-avanzado)
 
 
 # 1. Introducción
