@@ -2,13 +2,19 @@
 
 ## Tabla de contenidos:
 
-### [1. Introducción](#1-introducción)
-### [2. Contenedores](#2-contenedores)
-### [3. Datos en Docker](#3-datos-en-docker)
-### [4. Imágenes](#4-imágenes)
-### [5. Docker como herramienta de desarrollo](#5-docker-como-herramienta-de-desarrollo)
-### [6. Docker compose](#6-docker-compose)
-### [7. Docker Avanzado](#7-docker-avanzado)
+- ### [1. Introducción](#1-introducción)
+
+- ### [2. Contenedores](#2-contenedores)
+
+- ### [3. Datos en Docker](#3-datos-en-docker)
+
+- ### [4. Imágenes](#4-imágenes)
+
+- ### [5. Docker como herramienta de desarrollo](#5-docker-como-herramienta-de-desarrollo)
+
+- ### [6. Docker compose](#6-docker-compose)
+
+- ### [7. Docker Avanzado](#7-docker-avanzado)
 
 
 # 1. Introducción
@@ -785,6 +791,8 @@ Bastaría con volver a iniciar el contenedor con `docker start proxy` para volve
 
 # 3. Datos en Docker
 
+
+
 ## 3.1 Bind mounts
 
 Muchas veces necesitamos acceder a datos en nuestros contenedores que se encuentran por fuera de ellos mismos. Sin embargo, 
@@ -1275,6 +1283,14 @@ Ahora hagamos un ejercicio rápido de transferencia de archivos entre máquina l
     ```
 
 # 4. Imágenes
+
+Esta sección cuenta con las siguientes clases:
+
+- [4.1 Conceptos fundamentales de Docker: Imágenes](#41-conceptos-fundamentales-de-docker--imágenes)
+
+- [4.2 Construyendo una imagen propia](#42-construyendo-una-imagen-propia)
+
+- [4.3 El sistema de capas](#43-el-sistema-de-capas)
 
 ## 4.1 Conceptos fundamentales de Docker: Imágenes
 
